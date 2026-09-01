@@ -1,13 +1,56 @@
 # segment
 
-[![Tests](https://github.com/blevesearch/segment/workflows/Tests/badge.svg?branch=master&event=push)](https://github.com/blevesearch/segment/actions?query=workflow%3ATests+event%3Apush+branch%3Amaster)
-
 A Go library for performing Unicode Text Segmentation
 as described in [Unicode Standard Annex #29](http://www.unicode.org/reports/tr29/)
+
+> **This is a fork of [blevesearch/segment](https://github.com/blevesearch/segment).**
+> It adds recognition of five token shapes that UAX #29 does not describe but
+> that dominate machine-generated logs, so they arrive as single, already
+> classified tokens instead of being re-assembled downstream. See
+> [Log token extensions](#log-token-extensions). Everything else is upstream
+> behaviour, and the Unicode conformance suite still passes unchanged.
 
 ## Features
 
 * Currently only segmentation at Word Boundaries is supported.
+* Additional non-UAX#29 token types for log data: timestamps, IPv4, UUID,
+  email and MAC addresses.
+
+## Log token extensions
+
+UAX #29 is a natural-language specification, so on log data it splits values
+that are semantically single tokens. An RFC 3339 timestamp becomes thirteen
+tokens, a UUID nine, a MAC address nine. Worse, the split is uneven: in
+`2026-08-25T13:31:37`, the `25T13` fragment fuses day-of-month with hour into a
+single Letter-typed token, so a consumer masking only `Number` tokens is left
+with a literal that changes every hour.
+
+This fork recognizes the following shapes in the same scanner DFA, each emitted
+as one token with its own type:
+
+| Type | Recognizes | Examples |
+|---|---|---|
+| `Timestamp` | RFC 3339 / ISO 8601, with optional `T`/`t` separator, fractional seconds and zone; Common Log Format / HAProxy; bare wall clock; bare date | `2026-08-25T13:31:37+00:00`, `2026-08-25T13:31:37.854652267Z`, `25/Aug/2026:08:59:50.112`, `13:31:37`, `2026-08-25` |
+| `IPv4` | dotted quad | `192.168.14.203` |
+| `UUID` | 8-4-4-4-12 hex, either case | `550e8400-e29b-41d4-a716-446655440000` |
+| `Email` | local part, `@`, dotted domain | `first.last@mail.example.org` |
+| `MAC` | six hex pairs, colon- or dash-separated | `fa:3c:0d:3c:d9:d5`, `3a-22-4f-d9-b0-da` |
+
+Rules are listed ahead of `WordNumeric` and `Word` in the scanner so that an
+equal-length match resolves to the specific type, and `MAC` precedes the bare
+clock so an all-numeric MAC is not read as chained times.
+
+Shapes deliberately *not* claimed, verified in `segment_words_ext_test.go`:
+dotted dates (`2005.06.03`) and version strings (`10.4.1122.7`) are not IPv4;
+`13:31` and unpadded `2026-3-8` are not timestamps; short dashed hex
+(`deadbeef-cafe`) is not a UUID; five hex pairs are not a MAC.
+
+### Compatibility
+
+The added type constants are appended after the upstream `None`, `Number`,
+`Letter`, `Kana`, `Ideo` values, so existing comparisons against those keep
+working. A consumer that does not know the new types sees them as unrecognized
+type values carrying correct token text.
 
 ## License
 
@@ -74,7 +117,7 @@ There is support for fuzzing the segment library with [go-fuzz](https://github.c
 
 2.  Build the package with go-fuzz:
 
-		go-fuzz-build github.com/blevesearch/segment
+		go-fuzz-build github.com/pettai/segment
 
 3.  Convert the Unicode provided test cases into the initial corpus for go-fuzz:
 
@@ -86,9 +129,10 @@ There is support for fuzzing the segment library with [go-fuzz](https://github.c
 
 ## Status
 
+Unicode conformance (the UCD `WordBreakTest` tables) passes on both the default
+and `prod` builds, unchanged from upstream. Run the suite with:
 
-[![Build Status](https://travis-ci.org/blevesearch/segment.svg?branch=master)](https://travis-ci.org/blevesearch/segment)
+		go test ./...
+		go test -tags prod ./...
 
-[![Coverage Status](https://img.shields.io/coveralls/blevesearch/segment.svg)](https://coveralls.io/r/blevesearch/segment?branch=master)
-
-[![GoDoc](https://godoc.org/github.com/blevesearch/segment?status.svg)](https://godoc.org/github.com/blevesearch/segment)
+Upstream: [blevesearch/segment](https://github.com/blevesearch/segment).

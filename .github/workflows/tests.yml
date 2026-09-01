@@ -22,3 +22,6 @@ jobs:
       run: |
         go version
         go test -race ./...
+    - name: Test (prod build, goto machine)
+      run: |
+        go test -race -tags prod ./...
