@@ -346,8 +346,24 @@ func segmentWords(data []byte, maxTokens int, atEOF bool, val [][]byte, types []
   TokIPv4 = ( ADigit{1,3} ADot ADigit{1,3} ADot ADigit{1,3} ADot ADigit{1,3} )
             >startToken @endToken;
 
-  # 8-4-4-4-12. '-' is not a UAX#29 joiner, so today this shatters into 9 tokens.
-  TokUUID = ( AHex{8} ADash AHex{4} ADash AHex{4} ADash AHex{4} ADash AHex{12} )
+  # A "uuid:" or "urn:uuid:" scheme prefix (case-insensitive) fused directly
+  # onto a UUID's first hex group -- e.g. "urn:uuid:e2eb2dca-...". ':' is a
+  # UAX#29 MidLetter joiner, so without this, "urn:uuid:e2eb2dca" (prefix
+  # plus the UUID's first hex group) is consumed by the generic Word rule as
+  # one Letter token before TokUUID below ever gets a chance to start
+  # matching at the hex digits; the UUID then permanently fails to
+  # recognize as a whole, and any of its remaining dash-separated hex
+  # groups that happen to be all-digits gets independently typed Number.
+  # Narrowly scoped to these two literal spellings (not "any word ending in
+  # a colon") to avoid swallowing unrelated colon-joined text into a
+  # UUID-typed token.
+  UuidPrefixUUID = (0x75|0x55) (0x75|0x55) (0x69|0x49) (0x64|0x44) AColon; # uuid: (any case)
+  UuidPrefixURN  = (0x75|0x55) (0x72|0x52) (0x6E|0x4E) AColon;             # urn: (any case)
+  UuidPrefix = ( UuidPrefixURN )? UuidPrefixUUID;
+
+  # 8-4-4-4-12, optionally preceded by UuidPrefix above. '-' is not a UAX#29
+  # joiner, so without the UUID type this shatters into 9 tokens.
+  TokUUID = ( UuidPrefix? AHex{8} ADash AHex{4} ADash AHex{4} ADash AHex{4} ADash AHex{12} )
             >startToken @endToken;
 
   # 6 groups of 2 hex, colon- or dash-separated. Kept ahead of TokClock so an

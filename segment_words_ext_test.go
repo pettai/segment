@@ -108,6 +108,85 @@ func TestExtendedTypesRecognized(t *testing.T) {
 	}
 }
 
+// TestPrefixedUUIDRecognized covers "uuid:"/"urn:uuid:" scheme prefixes
+// fused directly onto a UUID's first hex group by the ':' MidLetter joiner.
+// Before UuidPrefix was added to TokUUID, the generic Word rule always won
+// this fight (e.g. "urn:uuid:e2eb2dca" came back as one Letter token,
+// followed by the rest of the UUID's dash-separated groups independently
+// typed Letter or, if a group happened to be all-digits, Number) — see
+// TokUUID's comment. Each of these must now come back as exactly one
+// UUID-typed token, prefix included, case-insensitively.
+func TestPrefixedUUIDRecognized(t *testing.T) {
+	tests := []string{
+		"uuid:550e8400-e29b-41d4-a716-446655440000",
+		"UUID:550e8400-e29b-41d4-a716-446655440000",
+		"urn:uuid:e2eb2dca-a95e-40cd-a68f-913ec07b7cef",
+		"URN:UUID:e2eb2dca-a95e-40cd-a68f-913ec07b7cef",
+		"Urn:Uuid:e2eb2dca-a95e-40cd-a68f-913ec07b7cef",
+		// Regression case: an interior hex group that happens to be all
+		// digits must not fragment the match, unlike the pre-fix behavior
+		// where "1234" here was independently typed Number.
+		"urn:uuid:a2e34afe-1234-44ad-aa6d-257034ac0832",
+	}
+	for _, in := range tests {
+		toks, types := segmentAll(t, in)
+		if len(toks) != 1 {
+			t.Errorf("%q: got %d tokens %q, want 1",
+				in, len(toks), strings.Join(toks, "|"))
+			continue
+		}
+		if toks[0] != in {
+			t.Errorf("%q: token text is %q", in, toks[0])
+		}
+		if types[0] != UUID {
+			t.Errorf("%q: type is %s, want UUID", in, typeName(types[0]))
+		}
+	}
+}
+
+// TestPrefixedUUIDGuards covers prefix-shaped text that must NOT be fused
+// into the UUID-typed token: TokUUID's UuidPrefix is scoped to exactly
+// "uuid:"/"urn:uuid:", not any colon-joined word before a hex-dash run. An
+// unrelated or near-miss prefix must stay its own separate token (or, for a
+// truncated UUID, prevent the UUID type from firing at all) — the bare UUID
+// itself may still correctly type standalone when nothing joins it to what
+// precedes it (e.g. a leading digit breaks the Letter-colon-Letter join
+// that fuses "uuid:e2eb..." in the first place).
+func TestPrefixedUUIDGuards(t *testing.T) {
+	const uuid = "550e8400-e29b-41d4-a716-446655440000"
+	tests := []struct {
+		in       string
+		wantToks []string // expected token split; UUID type checked on the "uuid" one
+	}{
+		{"session:" + uuid, []string{"session", ":", uuid}}, // unrelated prefix
+		{"uuidx:" + uuid, []string{"uuidx", ":", uuid}},     // near-miss prefix
+	}
+	for _, tc := range tests {
+		toks, types := segmentAll(t, tc.in)
+		if strings.Join(toks, "|") != strings.Join(tc.wantToks, "|") {
+			t.Errorf("%q: got tokens %q, want %q", tc.in, toks, tc.wantToks)
+			continue
+		}
+		if types[len(types)-1] != UUID {
+			t.Errorf("%q: last token %q should still type as a standalone UUID, got %s",
+				tc.in, toks[len(toks)-1], typeName(types[len(types)-1]))
+		}
+	}
+
+	notTyped := []string{
+		"uuid:550e8400-e29b", // prefix + truncated UUID: must not type at all
+	}
+	for _, in := range notTyped {
+		toks, types := segmentAll(t, in)
+		for i, ty := range types {
+			if ty == UUID {
+				t.Errorf("%q: token %q wrongly typed UUID (full split: %s)",
+					in, toks[i], strings.Join(toks, "|"))
+			}
+		}
+	}
+}
+
 // TestExtendedTypesGuards covers shapes that must NOT be claimed by the new
 // rules. These are the false positives the grammars were tightened against:
 // dotted dates and version strings are not IPv4, short or unpadded time-like
