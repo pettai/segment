@@ -36,6 +36,8 @@ func typeName(t int) string {
 		return "MAC"
 	case Timestamp:
 		return "Timestamp"
+	case SID:
+		return "SID"
 	}
 	return "?"
 }
@@ -90,6 +92,10 @@ func TestExtendedTypesRecognized(t *testing.T) {
 		{"first.last@mail.example.org", Email},
 		{"user+tag@example.co.uk", Email},
 		{"user_name@example-host.net", Email},
+		// Windows Security Identifier (SDDL string form)
+		{"S-1-5-18", SID}, // well-known SID (LocalSystem), minimum 3 groups
+		{"S-1-5-21-3623811015-3361044348-30300820-1013", SID}, // domain SID + RID (7 groups)
+		{"S-1-1-0", SID}, // well-known SID (Everyone)
 	}
 	for _, tc := range tests {
 		toks, types := segmentAll(t, tc.in)
@@ -205,8 +211,11 @@ func TestExtendedTypesGuards(t *testing.T) {
 		"user@example",   // no dot in domain
 		"@example.com",   // no local part
 		"25/Aug/2026",    // CLF date without the time part
+		"S-1-5",          // only 2 groups after 'S' — below the 3-group SID minimum
+		"S-1",            // only 1 group after 'S'
+		"s-1-5-18",       // lowercase 's' is not the SDDL string form
 	}
-	extended := map[int]bool{IPv4: true, UUID: true, Email: true, MAC: true, Timestamp: true}
+	extended := map[int]bool{IPv4: true, UUID: true, Email: true, MAC: true, Timestamp: true, SID: true}
 	for _, in := range notTyped {
 		toks, types := segmentAll(t, in)
 		for i, ty := range types {

@@ -41,6 +41,7 @@ const (
   Email
   MAC
   Timestamp
+  SID
 )
 
 %%{
@@ -129,6 +130,18 @@ func segmentWords(data []byte, maxTokens int, atEOF bool, val [][]byte, types []
     }
     val = append(val, data[startPos:endPos+1])
     types = append(types, MAC)
+    totalConsumed = endPos+1
+    if maxTokens > 0 && len(val) >= maxTokens {
+      return val, types, totalConsumed, nil
+    }
+  }
+
+  action finishSIDToken {
+    if !atEOF {
+      return val, types, totalConsumed, nil
+    }
+    val = append(val, data[startPos:endPos+1])
+    types = append(types, SID)
     totalConsumed = endPos+1
     if maxTokens > 0 && len(val) >= maxTokens {
       return val, types, totalConsumed, nil
@@ -371,6 +384,20 @@ func segmentWords(data []byte, maxTokens int, atEOF bool, val [][]byte, types []
   TokMAC = ( AHex{2} ( AColon AHex{2} ){5} | AHex{2} ( ADash AHex{2} ){5} )
            >startToken @endToken;
 
+  # Windows Security Identifier: "S-R-I-S...-RID", e.g.
+  # "S-1-5-21-3623811015-3361044348-30300820-1013". '-' is not a UAX#29
+  # joiner, so without this a SID shatters into "S" plus one Number token
+  # per dash-separated group -- and worse, a well-known SID (3 groups,
+  # e.g. "S-1-5-18") and a domain SID (6-7 groups) then differ in *token
+  # count*, not just value, so they can't even fuzzy-match the same
+  # template. Requires >=3 dash-separated decimal groups after the literal
+  # 'S' (revision, identifier authority, and at least one sub-authority) --
+  # the minimum any real SID has -- to avoid misfiring on shorter
+  # hyphenated tokens that happen to start with a bare "S". Capital 'S'
+  # only: the documented SDDL string form is always rendered uppercase.
+  SidNum = ADigit{1,15};
+  TokSID = ( 0x53 ADash SidNum ( ADash SidNum ){2,} ) >startToken @endToken;
+
   EmLocal = ( AAlnum | ADot | 0x5F | 0x25 | 0x2B | ADash )+;
   EmLabel = ( AAlnum | ADash )+;
   TokEmail = ( EmLocal AAt EmLabel ( ADot EmLabel )+ ) >startToken @endToken;
@@ -407,6 +434,7 @@ func segmentWords(data []byte, maxTokens int, atEOF bool, val [][]byte, types []
     TokIPv4 => finishIPv4Token;
     TokUUID => finishUUIDToken;
     TokMAC => finishMACToken;
+    TokSID => finishSIDToken;
     TokEmail => finishEmailToken;
     TokClock => finishTimestampToken;
     WordNumeric => finishNumericToken;
