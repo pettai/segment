@@ -96,6 +96,7 @@ func TestExtendedTypesRecognized(t *testing.T) {
 		{"first.last@mail.example.org", Email},
 		{"user+tag@example.co.uk", Email},
 		{"user_name@example-host.net", Email},
+		{"bob@xn--fiqs8s.example.xn--p1ai", Email}, // IDN top-level domain
 		// Windows Security Identifier (SDDL string form)
 		{"S-1-5-18", SID}, // well-known SID (LocalSystem), minimum 3 groups
 		{"S-1-5-21-3623811015-3361044348-30300820-1013", SID}, // domain SID + RID (7 groups)
@@ -217,11 +218,16 @@ func TestExtendedTypesGuards(t *testing.T) {
 		"0011.2233.4455.6677", // four all-numeric groups
 		"a4cf-995f-04cb",      // dash-separated groups of 4 are not Cisco's form
 		"user@example",        // no dot in domain
-		"@example.com",        // no local part
-		"25/Aug/2026",         // CLF date without the time part
-		"S-1-5",               // only 2 groups after 'S' — below the 3-group SID minimum
-		"S-1",                 // only 1 group after 'S'
-		"s-1-5-18",            // lowercase 's' is not the SDDL string form
+		"user@2027.service",   // systemd unit instance
+		"serial-getty@ttyS0.service",
+		"dbus-org.freedesktop.login1@x.socket",
+		"SecuredCoreState@1.0-GET", // a version, last label "0-GET"
+		"user@mail.example.s",      // one-letter last label
+		"@example.com",             // no local part
+		"25/Aug/2026",              // CLF date without the time part
+		"S-1-5",                    // only 2 groups after 'S' — below the 3-group SID minimum
+		"S-1",                      // only 1 group after 'S'
+		"s-1-5-18",                 // lowercase 's' is not the SDDL string form
 	}
 	extended := map[int]bool{IPv4: true, UUID: true, Email: true, MAC: true, Timestamp: true, SID: true, IPv6: true}
 	for _, in := range notTyped {
@@ -476,6 +482,23 @@ func TestIPv6InsideLongerRuns(t *testing.T) {
 			if ty == IPv6 {
 				t.Errorf("%q: token %q typed IPv6", tc.in, toks[i])
 			}
+		}
+	}
+}
+
+// TestEmailRejectedSplitsAsBefore checks that a rejected email match is
+// rescanned without the email rule: a unit instance keeps its parts, so a
+// consumer sees "user@<number>.service" rather than one opaque value.
+func TestEmailRejectedSplitsAsBefore(t *testing.T) {
+	tests := []struct{ in, want string }{
+		{"Stopped user@2027.service", "Stopped| |user|@|2027|.|service"},
+		{"user-runtime-dir@0.service", "user|-|runtime|-|dir|@|0|.|service"},
+		{"SecuredCoreState@1.0-GET x", "SecuredCoreState|@|1.0|-|GET| |x"},
+	}
+	for _, tc := range tests {
+		toks, _ := segmentAll(t, tc.in)
+		if got := strings.Join(toks, "|"); got != tc.want {
+			t.Errorf("%q:\n got %s\nwant %s", tc.in, got, tc.want)
 		}
 	}
 }

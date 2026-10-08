@@ -78,6 +78,8 @@ func segmentWords(data []byte, maxTokens int, atEOF bool, val [][]byte, types []
   // the position where TokIPv6 is switched off, after finishIPv6Token
   // rejected a match starting there and rescanned it (see ipv6End)
   noIPv6At := -1
+  // likewise for TokEmail (see emailOK)
+  noEmailAt := -1
   endPos := 0
   totalConsumed := 0
   %%{
@@ -117,15 +119,23 @@ func segmentWords(data []byte, maxTokens int, atEOF bool, val [][]byte, types []
     }
   }
 
+  action emailAllowed { ts != noEmailAt }
+
   action finishEmailToken {
     if !atEOF {
       return val, types, totalConsumed, nil
     }
-    val = append(val, data[startPos:endPos+1])
-    types = append(types, Email)
-    totalConsumed = endPos+1
-    if maxTokens > 0 && len(val) >= maxTokens {
-      return val, types, totalConsumed, nil
+    if !emailOK(data[startPos:endPos+1]) {
+      // Not an address: scan the same bytes again without TokEmail.
+      noEmailAt = startPos
+      fexec startPos;
+    } else {
+      val = append(val, data[startPos:endPos+1])
+      types = append(types, Email)
+      totalConsumed = endPos+1
+      if maxTokens > 0 && len(val) >= maxTokens {
+        return val, types, totalConsumed, nil
+      }
     }
   }
 
@@ -436,9 +446,16 @@ func segmentWords(data []byte, maxTokens int, atEOF bool, val [][]byte, types []
   SidNum = ADigit{1,15};
   TokSID = ( 0x53 ADash SidNum ( ADash SidNum ){2,} ) >startToken @endToken;
 
-  EmLocal = ( AAlnum | ADot | 0x5F | 0x25 | 0x2B | ADash )+;
   EmLabel = ( AAlnum | ADash )+;
-  TokEmail = ( EmLocal AAt EmLabel ( ADot EmLabel )+ ) >startToken @endToken;
+  # finishEmailToken checks the last label (emailOK) and rejects a match
+  # whose "domain" isn't one: a systemd unit instance
+  # ("serial-getty@ttyS0.service", "user@1000.service") or a name with a
+  # version ("SecuredCoreState@1.0-GET"). A rejected start is rescanned with
+  # this rule switched off there (emailAllowed), so it segments as it would
+  # without email typing.
+  EmChar = AAlnum | ADot | 0x5F | 0x25 | 0x2B | ADash;
+  TokEmail = ( ( EmChar when emailAllowed ) EmChar* AAt EmLabel ( ADot EmLabel )+ )
+             >startToken @endToken;
 
   # IPv6, the RFC 4291 text forms (RFC 3986's IPv6address ABNF): 8 groups,
   # or fewer with one "::", the last 32 bits optionally a dotted quad
@@ -490,8 +507,8 @@ func segmentWords(data []byte, maxTokens int, atEOF bool, val [][]byte, types []
   # The text before the match is out of reach: SegmentWords scans one token
   # per call, from the token's first byte.
   HexPairs8 = AHex{2} ( AColon AHex{2} ){7};
-  TokIPv6 = ( ( ( IPv6Addr - HexPairs8 ) & ( any{8} any* ) & ( any* ADigit any* ) )
-              when ipv6Allowed )
+  TokIPv6 = ( ( ( ( AHex | AColon ) when ipv6Allowed ) any* )
+              & ( IPv6Addr - HexPairs8 ) & ( any{8} any* ) & ( any* ADigit any* ) )
             >startToken @endToken;
 
   # ---- date / time ------------------------------------------------------

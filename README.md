@@ -33,7 +33,7 @@ as one token with its own type:
 | `Timestamp` | RFC 3339 / ISO 8601, with optional `T`/`t` separator, fractional seconds and zone; Common Log Format / HAProxy; bare wall clock; bare date | `2026-08-25T13:31:37+00:00`, `2026-08-25T13:31:37.854652267Z`, `25/Aug/2026:08:59:50.112`, `13:31:37`, `2026-08-25` |
 | `IPv4` | dotted quad | `192.168.14.203` |
 | `UUID` | 8-4-4-4-12 hex, either case | `550e8400-e29b-41d4-a716-446655440000` |
-| `Email` | local part, `@`, dotted domain | `first.last@mail.example.org` |
+| `Email` | local part, `@`, dotted domain whose last label is at least 2 letters (or an `xn--` IDN label) and not a systemd unit type | `first.last@mail.example.org` |
 | `MAC` | six hex pairs, colon- or dash-separated; Cisco's three dot-separated groups of four | `fa:3c:0d:3c:d9:d5`, `3a-22-4f-d9-b0-da`, `a4cf.995f.04cb` |
 | `SID` | Windows Security Identifier, `S-` and at least three decimal groups | `S-1-5-18`, `S-1-5-21-3623811015-3361044348-30300820-1013` |
 | `IPv6` | RFC 4291 text forms of at least 8 bytes, including a dotted IPv4 tail | `2001:db8::1`, `2a00:801:581:eeed:2d74:45ff:d67a:82a0`, `::ffff:172.16.1.1` |
@@ -49,7 +49,9 @@ dotted dates (`2005.06.03`) and version strings (`10.4.1122.7`) are not IPv4;
 run of four all-numeric groups (`0011.2233.4455.6677`); IPv6 addresses shorter
 than 8 bytes (`::1`, `fe80::1`; `a::` and `1::1` are UAX #29 conformance cases),
 hex-only scope syntax (`Feed::add`), eight 2-digit hex pairs and longer
-colon-hex runs (a netfilter `MAC=` chain, key fingerprints) are not IPv6.
+colon-hex runs (a netfilter `MAC=` chain, key fingerprints) are not IPv6;
+systemd unit instances (`user@1000.service`, `serial-getty@ttyS0.service`) and
+names with a version (`SecuredCoreState@1.0-GET`) are not email addresses.
 
 ### Compatibility
 
