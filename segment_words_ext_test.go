@@ -502,3 +502,34 @@ func TestEmailRejectedSplitsAsBefore(t *testing.T) {
 		}
 	}
 }
+
+// TestNumericListWithIPv4 covers lists joined by ',' or ';' without
+// spaces, which UAX#29 makes one Number (MidNum joins digits, for "1,000").
+// When an element is a valid IPv4 address, the list is cut into its
+// elements so the address is typed -- and an IPv6 address after it gets its
+// first group back.
+func TestNumericListWithIPv4(t *testing.T) {
+	tests := []struct{ in, want string }{
+		// nrpe allowed_hosts
+		{"127.0.0.1,127.0.1.1,172.16.0.0/12,192.36.171.233,2001:948:4:6::111,86.105.119.107",
+			"127.0.0.1/IPv4 ,/None 127.0.1.1/IPv4 ,/None 172.16.0.0/IPv4 //None 12/Number ,/None " +
+				"192.36.171.233/IPv4 ,/None 2001:948:4:6::111/IPv6 ,/None 86.105.119.107/IPv4"},
+		// ProxySQL (hostgroup,address,port,thread): the tail has no address
+		{"(10,89.46.21.95,3306,13897734)",
+			"(/None 10/Number ,/None 89.46.21.95/IPv4 ,/None 3306,13897734/Number )/None"},
+		{"10.0.0.1;10.0.0.2", "10.0.0.1/IPv4 ;/None 10.0.0.2/IPv4"},
+		// no valid address in the list: one Number, as UAX#29 says
+		{"1,000,000", "1,000,000/Number"},
+		{"300.1.2.3,4", "300.1.2.3,4/Number"},
+	}
+	for _, tc := range tests {
+		toks, types := segmentAll(t, tc.in)
+		var got []string
+		for i, ty := range types {
+			got = append(got, toks[i]+"/"+typeName(ty))
+		}
+		if g := strings.Join(got, " "); g != tc.want {
+			t.Errorf("%q:\n got %s\nwant %s", tc.in, g, tc.want)
+		}
+	}
+}

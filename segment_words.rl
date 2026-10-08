@@ -205,9 +205,22 @@ func segmentWords(data []byte, maxTokens int, atEOF bool, val [][]byte, types []
       return val, types, totalConsumed, nil
     }
 
-    val = append(val, data[startPos:endPos+1])
-    types = append(types, Number)
-    totalConsumed = endPos+1
+    if n, ipv4 := numericListCut(data[startPos:endPos+1]); n > 0 {
+      // A ','/';'-joined list holding an IPv4 address: emit its first
+      // element alone and scan the rest again from the separator.
+      val = append(val, data[startPos:startPos+n])
+      if ipv4 {
+        types = append(types, IPv4)
+      } else {
+        types = append(types, Number)
+      }
+      totalConsumed = startPos+n
+      fexec startPos+n;
+    } else {
+      val = append(val, data[startPos:endPos+1])
+      types = append(types, Number)
+      totalConsumed = endPos+1
+    }
     if maxTokens > 0 && len(val) >= maxTokens {
       return val, types, totalConsumed, nil
     }

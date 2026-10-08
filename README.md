@@ -31,7 +31,7 @@ as one token with its own type:
 | Type | Recognizes | Examples |
 |---|---|---|
 | `Timestamp` | RFC 3339 / ISO 8601, with optional `T`/`t` separator, fractional seconds and zone; Common Log Format / HAProxy; bare wall clock; bare date | `2026-08-25T13:31:37+00:00`, `2026-08-25T13:31:37.854652267Z`, `25/Aug/2026:08:59:50.112`, `13:31:37`, `2026-08-25` |
-| `IPv4` | dotted quad | `192.168.14.203` |
+| `IPv4` | dotted quad, also inside a `,`/`;`-joined list that UAX #29 would make one number | `192.168.14.203`, `127.0.0.1,10.0.0.1` |
 | `UUID` | 8-4-4-4-12 hex, either case | `550e8400-e29b-41d4-a716-446655440000` |
 | `Email` | local part, `@`, dotted domain whose last label is at least 2 letters (or an `xn--` IDN label) and not a systemd unit type | `first.last@mail.example.org` |
 | `MAC` | six hex pairs, colon- or dash-separated; Cisco's three dot-separated groups of four | `fa:3c:0d:3c:d9:d5`, `3a-22-4f-d9-b0-da`, `a4cf.995f.04cb` |
