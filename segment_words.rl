@@ -31,17 +31,19 @@ const (
   // logs. Recognized by the same scanner DFA, so they arrive already whole and
   // already classified -- no downstream re-assembly.
   //
-  // There is deliberately no IPv6 type. Every added rule is at least 8 bytes
-  // long, so none can collide with the UCD WordBreakTest strings (all <= 4
-  // chars). Compressed IPv6 cannot meet that bar: "a::" and "1::1" are valid
-  // addresses and are also conformance cases that must split, so recognizing
-  // them here fails the Unicode test suite. Left to the caller.
+  // Every added rule matches at least 8 bytes, so none can collide with the
+  // UCD WordBreakTest strings (the longest made only of hex digits, ':' and
+  // '.' is 4 bytes). IPv6 is held to that bar explicitly: "a::" and "1::1"
+  // are valid addresses and also conformance cases that must split, so an
+  // IPv6 address shorter than 8 bytes ("::1", "fe80::1") is not typed here
+  // and is left to the caller.
   IPv4
   UUID
   Email
   MAC
   Timestamp
   SID
+  IPv6
 )
 
 %%{
@@ -73,6 +75,9 @@ func segmentWords(data []byte, maxTokens int, atEOF bool, val [][]byte, types []
 
   // our state
   startPos := 0
+  // the position where TokIPv6 is switched off, after finishIPv6Token
+  // rejected a match starting there and rescanned it (see ipv6End)
+  noIPv6At := -1
   endPos := 0
   totalConsumed := 0
   %%{
@@ -145,6 +150,31 @@ func segmentWords(data []byte, maxTokens int, atEOF bool, val [][]byte, types []
     totalConsumed = endPos+1
     if maxTokens > 0 && len(val) >= maxTokens {
       return val, types, totalConsumed, nil
+    }
+  }
+
+  action ipv6Allowed { ts != noIPv6At }
+
+  action finishIPv6Token {
+    if !atEOF {
+      return val, types, totalConsumed, nil
+    }
+    if end, ok := ipv6End(data, startPos, endPos+1); !ok {
+      // Not an address in this context: scan the same bytes again
+      // without TokIPv6, which gives what UAX#29 and the other rules make
+      // of them.
+      noIPv6At = startPos
+      fexec startPos;
+    } else {
+      val = append(val, data[startPos:end])
+      types = append(types, IPv6)
+      totalConsumed = end
+      if end != endPos+1 {
+        fexec end;
+      }
+      if maxTokens > 0 && len(val) >= maxTokens {
+        return val, types, totalConsumed, nil
+      }
     }
   }
 
@@ -410,10 +440,60 @@ func segmentWords(data []byte, maxTokens int, atEOF bool, val [][]byte, types []
   EmLabel = ( AAlnum | ADash )+;
   TokEmail = ( EmLocal AAt EmLabel ( ADot EmLabel )+ ) >startToken @endToken;
 
-  # Uncompressed form requires all 8 groups, so "12:34:56" (a clock) and a
-  # 6-group MAC cannot match. A trailing '::' needs >=2 groups before it, so
-  # "a::" stays three tokens as UAX#29 requires (this is a real conformance
-  # case in the UCD WordBreakTest tables, not a hypothetical).
+  # IPv6, the RFC 4291 text forms (RFC 3986's IPv6address ABNF): 8 groups,
+  # or fewer with one "::", the last 32 bits optionally a dotted quad
+  # ("::ffff:172.16.1.1"). ':' is a UAX#29 MidLetter joiner and '.' a
+  # MidNumLet, so without this an address shatters unevenly -- "45ff:d67a"
+  # fuses, "2a00:801" doesn't -- and a run of 2-digit groups is taken by
+  # TokClock ("2604:4000:0:d:216:40:47:26" loses "16:40:47" to a
+  # Timestamp). Matching the whole address is longer than any of those, so
+  # longest match settles it.
+  #
+  # Three guards on top of the grammar:
+  #   - at least 8 bytes: "a::" and "1::1" are WordBreakTest cases that must
+  #     split, and every conformance string of hex digits and ':' is <= 4
+  #     bytes. Shorter addresses ("::1", "fe80::1") are left to the caller;
+  #     none of them is long enough to contain a clock.
+  #   - at least one digit: hex-only identifiers such as "Feed::add" or
+  #     "Cafe::Bad" (C++/PHP scope syntax) are valid compressed addresses by
+  #     grammar alone.
+  #   - not 8 groups of exactly 2 hex digits: that is a run of hex pairs --
+  #     the tail of netfilter's 14-byte "MAC=" chain, or of a key
+  #     fingerprint, once the leading pairs have gone to TokMAC -- and a
+  #     real address practically never prints that way.
+  # A 6-group MAC and a 3-group clock are not valid addresses (no "::"), so
+  # neither can tie with this rule. An unbracketed port after a full
+  # 8-group address is left out (a 9th group is invalid), but after a "::"
+  # address it reads as one more group -- the text alone can't tell.
+  H16  = AHex{1,4};
+  H16C = H16 AColon;
+  Dec  = ADigit{1,3};
+  Ls32 = H16 AColon H16 | Dec ADot Dec ADot Dec ADot Dec;
+  DCol = AColon AColon;
+  IPv6Addr =                            H16C{6} Ls32
+           |                       DCol H16C{5} Ls32
+           | ( H16 )?              DCol H16C{4} Ls32
+           | ( H16C{0,1} H16 )?    DCol H16C{3} Ls32
+           | ( H16C{0,2} H16 )?    DCol H16C{2} Ls32
+           | ( H16C{0,3} H16 )?    DCol H16C    Ls32
+           | ( H16C{0,4} H16 )?    DCol         Ls32
+           | ( H16C{0,5} H16 )?    DCol         H16
+           | ( H16C{0,6} H16 )?    DCol;
+  #
+  # What the grammar can't see is the text after the match, so
+  # finishIPv6Token checks it (ipv6End): a match that runs on into a longer
+  # group ("fdcd:304b:f1d4::1:6019" in "...::1:60198", an unbracketed
+  # 5-digit port) is cut back to the last whole group, and one followed by
+  # more colon-separated hex that isn't a port is rejected. A rejected start
+  # is rescanned with this rule switched off there (the ipv6Allowed
+  # condition), so it segments exactly as it would without IPv6 typing.
+  # The text before the match is out of reach: SegmentWords scans one token
+  # per call, from the token's first byte.
+  HexPairs8 = AHex{2} ( AColon AHex{2} ){7};
+  TokIPv6 = ( ( ( IPv6Addr - HexPairs8 ) & ( any{8} any* ) & ( any* ADigit any* ) )
+              when ipv6Allowed )
+            >startToken @endToken;
+
   # ---- date / time ------------------------------------------------------
   # Every alternative is >=8 bytes, so none can collide with the UCD
   # WordBreakTest strings, which are all <= 4 chars.
@@ -440,6 +520,7 @@ func segmentWords(data []byte, maxTokens int, atEOF bool, val [][]byte, types []
     TokCLF => finishTimestampToken;
     TokISO => finishTimestampToken;
     TokIPv4 => finishIPv4Token;
+    TokIPv6 => finishIPv6Token;
     TokUUID => finishUUIDToken;
     TokMAC => finishMACToken;
     TokSID => finishSIDToken;

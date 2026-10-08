@@ -4,7 +4,7 @@ A Go library for performing Unicode Text Segmentation
 as described in [Unicode Standard Annex #29](http://www.unicode.org/reports/tr29/)
 
 > **This is a fork of [blevesearch/segment](https://github.com/blevesearch/segment).**
-> It adds recognition of five token shapes that UAX #29 does not describe but
+> It adds recognition of seven token shapes that UAX #29 does not describe but
 > that dominate machine-generated logs, so they arrive as single, already
 > classified tokens instead of being re-assembled downstream. See
 > [Log token extensions](#log-token-extensions). Everything else is upstream
@@ -13,8 +13,8 @@ as described in [Unicode Standard Annex #29](http://www.unicode.org/reports/tr29
 ## Features
 
 * Currently only segmentation at Word Boundaries is supported.
-* Additional non-UAX#29 token types for log data: timestamps, IPv4, UUID,
-  email and MAC addresses.
+* Additional non-UAX#29 token types for log data: timestamps, IPv4 and IPv6,
+  UUID, email and MAC addresses, Windows SIDs.
 
 ## Log token extensions
 
@@ -35,6 +35,8 @@ as one token with its own type:
 | `UUID` | 8-4-4-4-12 hex, either case | `550e8400-e29b-41d4-a716-446655440000` |
 | `Email` | local part, `@`, dotted domain | `first.last@mail.example.org` |
 | `MAC` | six hex pairs, colon- or dash-separated; Cisco's three dot-separated groups of four | `fa:3c:0d:3c:d9:d5`, `3a-22-4f-d9-b0-da`, `a4cf.995f.04cb` |
+| `SID` | Windows Security Identifier, `S-` and at least three decimal groups | `S-1-5-18`, `S-1-5-21-3623811015-3361044348-30300820-1013` |
+| `IPv6` | RFC 4291 text forms of at least 8 bytes, including a dotted IPv4 tail | `2001:db8::1`, `2a00:801:581:eeed:2d74:45ff:d67a:82a0`, `::ffff:172.16.1.1` |
 
 Rules are listed ahead of `WordNumeric` and `Word` in the scanner so that an
 equal-length match resolves to the specific type, and `MAC` precedes the bare
@@ -44,7 +46,10 @@ Shapes deliberately *not* claimed, verified in `segment_words_ext_test.go`:
 dotted dates (`2005.06.03`) and version strings (`10.4.1122.7`) are not IPv4;
 `13:31` and unpadded `2026-3-8` are not timestamps; short dashed hex
 (`deadbeef-cafe`) is not a UUID; five hex pairs are not a MAC, nor is a dotted
-run of four all-numeric groups (`0011.2233.4455.6677`).
+run of four all-numeric groups (`0011.2233.4455.6677`); IPv6 addresses shorter
+than 8 bytes (`::1`, `fe80::1`; `a::` and `1::1` are UAX #29 conformance cases),
+hex-only scope syntax (`Feed::add`), eight 2-digit hex pairs and longer
+colon-hex runs (a netfilter `MAC=` chain, key fingerprints) are not IPv6.
 
 ### Compatibility
 

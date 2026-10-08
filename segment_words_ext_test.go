@@ -38,6 +38,8 @@ func typeName(t int) string {
 		return "Timestamp"
 	case SID:
 		return "SID"
+	case IPv6:
+		return "IPv6"
 	}
 	return "?"
 }
@@ -221,7 +223,7 @@ func TestExtendedTypesGuards(t *testing.T) {
 		"S-1",                 // only 1 group after 'S'
 		"s-1-5-18",            // lowercase 's' is not the SDDL string form
 	}
-	extended := map[int]bool{IPv4: true, UUID: true, Email: true, MAC: true, Timestamp: true, SID: true}
+	extended := map[int]bool{IPv4: true, UUID: true, Email: true, MAC: true, Timestamp: true, SID: true, IPv6: true}
 	for _, in := range notTyped {
 		toks, types := segmentAll(t, in)
 		for i, ty := range types {
@@ -319,5 +321,161 @@ func TestCiscoMACInContext(t *testing.T) {
 	}
 	if strings.Join(macs, "|") != "7a0d.eb06.2612|4C-B1-CD-50-C2-18" {
 		t.Errorf("got MACs %q: %s", macs, strings.Join(toks, "|"))
+	}
+}
+
+// TestIPv6Recognized covers the RFC 4291 text forms. Each must come back as
+// one IPv6 token.
+func TestIPv6Recognized(t *testing.T) {
+	for _, in := range []string{
+		"2001:0db8:85a3:0000:0000:8a2e:0370:7334", // full form
+		"2001:db8:85a3:0:0:8a2e:370:7334",         // leading zeros dropped
+		"2a00:801:581:eeed:2d74:45ff:d67a:82a0",   // groups UAX#29 would fuse ("45ff:d67a")
+		"2001:db8::1",                             // compressed
+		"2001:db8::",                              // trailing "::"
+		"::ffff:172.16.1.1",                       // IPv4-mapped
+		"64:ff9b::192.0.2.33",                     // NAT64, dotted tail
+		"fe80::1:2:3",                             // link-local
+		"FE80::A00:27FF:FE4E:66A1",                // upper case
+		"::1234:5678",                             // leading "::", exactly 8 bytes
+		"1:2:3:4:5:6:7::",                         // 7 groups + trailing "::"
+	} {
+		toks, types := segmentAll(t, in)
+		if len(toks) != 1 || toks[0] != in || types[0] != IPv6 {
+			t.Errorf("%q: got %q typed %s, want one IPv6 token",
+				in, strings.Join(toks, "|"), typeName(types[0]))
+		}
+	}
+}
+
+// TestIPv6Guards covers what the IPv6 rule must leave alone: short
+// addresses (conformance cases among them), hex-only scope syntax, and the
+// colon-separated shapes other rules own.
+func TestIPv6Guards(t *testing.T) {
+	for _, in := range []string{
+		"::1",               // shorter than 8 bytes
+		"fe80::1",           // 7 bytes
+		"1::1",              // a WordBreakTest case
+		"a::",               // a WordBreakTest case
+		"Feed::add",         // hex-only scope syntax: no digit
+		"Cafe::Bad",         // ditto
+		"std::vector",       // not hex at all
+		"1:2:3:4:5:6:7",     // 7 groups, no "::"
+		"12345::1",          // a group longer than 4 hex digits
+		"1:2:3:4:5:6:7:8:9", // 9 groups: the 8-group prefix is taken, see TestIPv6Port
+	} {
+		toks, types := segmentAll(t, in)
+		if len(toks) == 1 && types[0] == IPv6 {
+			t.Errorf("%q: wrongly typed IPv6 as a whole", in)
+		}
+		if in == "1:2:3:4:5:6:7:8:9" {
+			continue
+		}
+		for i, ty := range types {
+			if ty == IPv6 {
+				t.Errorf("%q: token %q wrongly typed IPv6 (full split: %s)",
+					in, toks[i], strings.Join(toks, "|"))
+			}
+		}
+	}
+	// The shapes other rules own keep their types.
+	for _, tc := range []struct {
+		in   string
+		want int
+	}{
+		{"12:34:56:78:90:12", MAC},
+		{"13:31:37", Timestamp},
+		{"192.168.14.203", IPv4},
+	} {
+		toks, types := segmentAll(t, tc.in)
+		if len(toks) != 1 || types[0] != tc.want {
+			t.Errorf("%q: got %q typed %s, want %s",
+				tc.in, strings.Join(toks, "|"), typeName(types[0]), typeName(tc.want))
+		}
+	}
+}
+
+// TestIPv6ClockShapedGroups is the case that motivated the rule: a run of
+// 2-digit groups inside an address used to be taken by TokClock, cutting the
+// address in two.
+func TestIPv6ClockShapedGroups(t *testing.T) {
+	const addr = "2604:4000:0:d:216:40:47:26"
+	toks, types := segmentAll(t, "from "+addr+" port 22")
+	for i, tok := range toks {
+		if tok == addr && types[i] == IPv6 {
+			return
+		}
+	}
+	t.Errorf("no IPv6 token %q: %s", addr, strings.Join(toks, "|"))
+}
+
+// TestIPv6Port pins what happens to a port after an address. Bracketed, it
+// is always separate. Unbracketed, it is left out when it can't be a group:
+// after a full 8-group address (a 9th group is invalid) or when it has 5
+// digits (a group has at most 4, so the address is cut back to its last
+// whole group). A port of up to 4 digits after a "::" address is one more
+// valid group, and the text alone can't say otherwise.
+func TestIPv6Port(t *testing.T) {
+	tests := []struct{ in, want string }{
+		{"[2001:db8::1]:443", "2001:db8::1"},
+		{"2001:948:4:6:2a00:afff:fef3:82bc:443", "2001:948:4:6:2a00:afff:fef3:82bc"},
+		{"2a00:801:581:eeed:2d74:45ff:d67a:82a0:40398", "2a00:801:581:eeed:2d74:45ff:d67a:82a0"},
+		{"fdcd:304b:f1d4::1:60198", "fdcd:304b:f1d4::1"},
+		{"2001:9b1:8826:0:155:4:14:52:52356", "2001:9b1:8826:0:155:4:14:52"},
+		{"::ffff:10.1.2.3:8080", "::ffff:10.1.2.3"},
+		{"2001:db8::1:443", "2001:db8::1:443"},
+	}
+	for _, tc := range tests {
+		toks, types := segmentAll(t, tc.in)
+		found := false
+		for i, tok := range toks {
+			if types[i] == IPv6 {
+				if tok != tc.want {
+					t.Errorf("%q: IPv6 token %q, want %q", tc.in, tok, tc.want)
+				}
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("%q: no IPv6 token: %s", tc.in, strings.Join(toks, "|"))
+		}
+	}
+}
+
+// TestIPv6InsideLongerRuns checks the guards against longer colon-hex runs:
+// none of these is an address, and each segments exactly as it did before
+// IPv6 typing existed (the expected splits come from segment 17fd421).
+func TestIPv6InsideLongerRuns(t *testing.T) {
+	tests := []struct {
+		in, want string
+	}{
+		// netfilter LOG "MAC=": dst MAC + src MAC + EtherType, colon-joined
+		{"MAC=d0:94:66:1f:1e:de:d4:af:f7:ca:11:8d:08:00 SRC=x",
+			"MAC|=|d0:94:66:1f:1e:de|:|d4:af:f7:ca:11:8d|:|08|:|00| |SRC|=|x"},
+		// a 16-group MD5 key fingerprint
+		{"MD5:5e:2a:13:9c:01:7f:aa:3b:52:6d:0e:91:c4:88:12:f0",
+			"MD5|:|5e:2a:13:9c:01:7f|:|aa:3b:52:6d:0e:91|:|c4|:|88|:|12|:|f0"},
+		// 20- and 32-pair SHA-1/SHA-256 fingerprints: after the leading pairs
+		// go to TokMAC, exactly 8 pairs remain, which is a valid address by
+		// grammar alone
+		{"SHA1:5e:2a:13:9c:01:7f:aa:3b:52:6d:0e:91:c4:88:12:f0:01:02:03:04",
+			"SHA1|:|5e:2a:13:9c:01:7f|:|aa:3b:52:6d:0e:91|:|c4:88:12:f0:01:02|:|03|:|04"},
+		{"SHA256:5e:2a:13:9c:01:7f:aa:3b:52:6d:0e:91:c4:88:12:f0:5e:2a:13:9c:01:7f:aa:3b:52:6d:0e:91:c4:88:12:f0",
+			"SHA256|:|5e:2a:13:9c:01:7f|:|aa:3b:52:6d:0e:91|:|c4:88:12:f0:5e:2a|:|13:9c:01:7f:aa:3b|:|52:6d:0e:91:c4:88|:|12|:|f0"},
+		// 8 groups of exactly 2 digits
+		{"10:20:30:40:50:60:70:80", "10:20:30:40:50:60|:|70|:|80"},
+		// a 4-hex group running on past 4 digits in an 8-group address
+		{"1:2:3:4:5:6:7:89abc", "1|:|2|:|3|:|4|:|5|:|6|:|7|:|89abc"},
+	}
+	for _, tc := range tests {
+		toks, types := segmentAll(t, tc.in)
+		if got := strings.Join(toks, "|"); got != tc.want {
+			t.Errorf("%q:\n got %s\nwant %s", tc.in, got, tc.want)
+		}
+		for i, ty := range types {
+			if ty == IPv6 {
+				t.Errorf("%q: token %q typed IPv6", tc.in, toks[i])
+			}
+		}
 	}
 }
