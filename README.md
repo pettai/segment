@@ -34,7 +34,7 @@ as one token with its own type:
 | `IPv4` | dotted quad | `192.168.14.203` |
 | `UUID` | 8-4-4-4-12 hex, either case | `550e8400-e29b-41d4-a716-446655440000` |
 | `Email` | local part, `@`, dotted domain | `first.last@mail.example.org` |
-| `MAC` | six hex pairs, colon- or dash-separated | `fa:3c:0d:3c:d9:d5`, `3a-22-4f-d9-b0-da` |
+| `MAC` | six hex pairs, colon- or dash-separated; Cisco's three dot-separated groups of four | `fa:3c:0d:3c:d9:d5`, `3a-22-4f-d9-b0-da`, `a4cf.995f.04cb` |
 
 Rules are listed ahead of `WordNumeric` and `Word` in the scanner so that an
 equal-length match resolves to the specific type, and `MAC` precedes the bare
@@ -43,7 +43,8 @@ clock so an all-numeric MAC is not read as chained times.
 Shapes deliberately *not* claimed, verified in `segment_words_ext_test.go`:
 dotted dates (`2005.06.03`) and version strings (`10.4.1122.7`) are not IPv4;
 `13:31` and unpadded `2026-3-8` are not timestamps; short dashed hex
-(`deadbeef-cafe`) is not a UUID; five hex pairs are not a MAC.
+(`deadbeef-cafe`) is not a UUID; five hex pairs are not a MAC, nor is a dotted
+run of four all-numeric groups (`0011.2233.4455.6677`).
 
 ### Compatibility
 

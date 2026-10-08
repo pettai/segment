@@ -88,6 +88,8 @@ func TestExtendedTypesRecognized(t *testing.T) {
 		{"fa:3c:0d:3c:d9:d5", MAC},
 		{"3a-22-4f-d9-b0-da", MAC},
 		{"D4:AF:F7:CA:12:83", MAC},
+		{"a4cf.995f.04cb", MAC}, // Cisco dotted form
+		{"A4CF.995F.04CB", MAC},
 		{"user@example.com", Email},
 		{"first.last@mail.example.org", Email},
 		{"user+tag@example.co.uk", Email},
@@ -199,21 +201,25 @@ func TestPrefixedUUIDGuards(t *testing.T) {
 // strings are not timestamps, and short dashed hex is not a UUID.
 func TestExtendedTypesGuards(t *testing.T) {
 	notTyped := []string{
-		"2005.06.03",     // dotted date, three groups
-		"10.4.1122.7",    // version string, group too long for IPv4
-		"1.2.3",          // three groups only
-		"3.4.5.6.7",      // five groups
-		"13:31",          // no seconds
-		"2026-3-8",       // unpadded date
-		"deadbeef-cafe",  // short dashed hex
-		"550e8400-e29b",  // truncated UUID
-		"fa:3c:0d:3c:d9", // five MAC groups
-		"user@example",   // no dot in domain
-		"@example.com",   // no local part
-		"25/Aug/2026",    // CLF date without the time part
-		"S-1-5",          // only 2 groups after 'S' — below the 3-group SID minimum
-		"S-1",            // only 1 group after 'S'
-		"s-1-5-18",       // lowercase 's' is not the SDDL string form
+		"2005.06.03",          // dotted date, three groups
+		"10.4.1122.7",         // version string, group too long for IPv4
+		"1.2.3",               // three groups only
+		"3.4.5.6.7",           // five groups
+		"13:31",               // no seconds
+		"2026-3-8",            // unpadded date
+		"deadbeef-cafe",       // short dashed hex
+		"550e8400-e29b",       // truncated UUID
+		"fa:3c:0d:3c:d9",      // five MAC groups
+		"a4cf.995f",           // two Cisco MAC groups
+		"a4cf.995f.04c",       // short last Cisco group
+		"0011.2233.4455.6677", // four all-numeric groups
+		"a4cf-995f-04cb",      // dash-separated groups of 4 are not Cisco's form
+		"user@example",        // no dot in domain
+		"@example.com",        // no local part
+		"25/Aug/2026",         // CLF date without the time part
+		"S-1-5",               // only 2 groups after 'S' — below the 3-group SID minimum
+		"S-1",                 // only 1 group after 'S'
+		"s-1-5-18",            // lowercase 's' is not the SDDL string form
 	}
 	extended := map[int]bool{IPv4: true, UUID: true, Email: true, MAC: true, Timestamp: true, SID: true}
 	for _, in := range notTyped {
@@ -234,11 +240,28 @@ func TestExtendedTypesGuards(t *testing.T) {
 // behaves, and the shapes it applies to ("2026-08-255") do not occur in real
 // log output. Recorded as a test so the behaviour is intentional, not a
 // surprise for the next reader.
+//
+// MACs behave the same way in all three forms. For the Cisco form this holds
+// even though a longer dotted run looks like it should be one token: UAX#29
+// doesn't join a letter to a digit across '.', so without the MAC rule
+// "a4cf.995f.04cb.1234" is already five tokens, and no Word match is longer
+// than the MAC prefix. An all-numeric run is different -- see the guards.
 func TestExtendedTypesGreedyPrefix(t *testing.T) {
-	toks, types := segmentAll(t, "2026-08-255")
-	if len(toks) != 2 || toks[0] != "2026-08-25" || types[0] != Timestamp {
-		t.Errorf("got %q typed %s, want 2026-08-25|5 with Timestamp first",
-			strings.Join(toks, "|"), typeName(types[0]))
+	tests := []struct {
+		in, first string
+		want      int
+	}{
+		{"2026-08-255", "2026-08-25", Timestamp},
+		{"fa:3c:0d:3c:d9:d5:11", "fa:3c:0d:3c:d9:d5", MAC},
+		{"a4cf.995f.04cbe", "a4cf.995f.04cb", MAC},
+		{"a4cf.995f.04cb.1234", "a4cf.995f.04cb", MAC},
+	}
+	for _, tc := range tests {
+		toks, types := segmentAll(t, tc.in)
+		if len(toks) < 2 || toks[0] != tc.first || types[0] != tc.want {
+			t.Errorf("%q: got %q typed %s, want %s typed %s first, then the rest",
+				tc.in, strings.Join(toks, "|"), typeName(types[0]), tc.first, typeName(tc.want))
+		}
 	}
 }
 
@@ -250,6 +273,7 @@ func TestExtendedTypesPrecedence(t *testing.T) {
 		want int
 	}{
 		{"12:34:56:78:90:12", MAC},         // not three chained clocks
+		{"0011.2233.4455", MAC},            // not one Numeric token
 		{"2026-08-25T13:31:37", Timestamp}, // not a date followed by a clock
 	}
 	for _, tc := range tests {
@@ -277,5 +301,23 @@ func TestExtendedTypesInContext(t *testing.T) {
 	}
 	if got[IPv4] != 1 {
 		t.Errorf("got %d IPv4 tokens, want 1: %s", got[IPv4], strings.Join(toks, "|"))
+	}
+}
+
+// TestCiscoMACInContext uses a RADIUS accounting line, where the
+// Calling-Station-Id is in Cisco's dotted form and the NAS id in the
+// dash-separated form: both must come back as MAC, neither swallowing its
+// neighbours.
+func TestCiscoMACInContext(t *testing.T) {
+	const line = `AUTH: Access-Accept for user@example.se at Proxy=192.0.2.34 (CSI=7a0d.eb06.2612 NAS=4C-B1-CD-50-C2-18/10.70.1.22)`
+	toks, types := segmentAll(t, line)
+	var macs []string
+	for i, ty := range types {
+		if ty == MAC {
+			macs = append(macs, toks[i])
+		}
+	}
+	if strings.Join(macs, "|") != "7a0d.eb06.2612|4C-B1-CD-50-C2-18" {
+		t.Errorf("got MACs %q: %s", macs, strings.Join(toks, "|"))
 	}
 }

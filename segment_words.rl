@@ -379,9 +379,17 @@ func segmentWords(data []byte, maxTokens int, atEOF bool, val [][]byte, types []
   TokUUID = ( UuidPrefix? AHex{8} ADash AHex{4} ADash AHex{4} ADash AHex{4} ADash AHex{12} )
             >startToken @endToken;
 
-  # 6 groups of 2 hex, colon- or dash-separated. Kept ahead of TokClock so an
-  # all-numeric MAC still wins on length rather than matching as a wall clock.
-  TokMAC = ( AHex{2} ( AColon AHex{2} ){5} | AHex{2} ( ADash AHex{2} ){5} )
+  # 6 groups of 2 hex, colon- or dash-separated, or Cisco's 3 groups of 4 hex,
+  # dot-separated ("a4cf.995f.04cb", as in IOS/WLC output and RADIUS
+  # Calling-Station-Id). Kept ahead of TokClock so an all-numeric MAC still
+  # wins on length rather than matching as a wall clock, and ahead of
+  # WordNumeric so an all-numeric Cisco MAC ("0011.2233.4455", which UAX#29
+  # already joins into one Numeric token) gets the MAC type on the tie. A
+  # longer all-numeric run ("0011.2233.4455.6677") is still one Numeric
+  # token, since longest match wins; a longer mixed run gets a MAC prefix,
+  # like the other two forms (see TestExtendedTypesGreedyPrefix).
+  TokMAC = ( AHex{2} ( AColon AHex{2} ){5} | AHex{2} ( ADash AHex{2} ){5}
+           | AHex{4} ADot AHex{4} ADot AHex{4} )
            >startToken @endToken;
 
   # Windows Security Identifier: "S-R-I-S...-RID", e.g.
