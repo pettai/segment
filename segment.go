@@ -143,6 +143,10 @@ var (
 	ErrTooLong         = errors.New("bufio.Segmenter: token too long")
 	ErrNegativeAdvance = errors.New("bufio.Segmenter: SplitFunc returns negative advance count")
 	ErrAdvanceTooFar   = errors.New("bufio.Segmenter: SplitFunc returns advance count beyond input")
+	// ErrNoProgress means the segment function made no progress on the
+	// remaining input at EOF, so those bytes were never returned as tokens.
+	// SegmentWords consumes any input, so this indicates a scanner bug.
+	ErrNoProgress = errors.New("bufio.Segmenter: SplitFunc makes no progress at EOF")
 )
 
 const (
@@ -204,6 +208,10 @@ func (s *Segmenter) Segment() bool {
 		// We cannot generate a token with what we are holding.
 		// If we've already hit EOF or an I/O error, we are done.
 		if s.err != nil {
+			if s.err == io.EOF && s.end > s.start {
+				// Input is left that the segment function would not take.
+				s.setErr(ErrNoProgress)
+			}
 			// Shut it down.
 			s.start = 0
 			s.end = 0

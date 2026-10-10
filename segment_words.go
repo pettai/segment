@@ -46,10 +46,14 @@ const (
   Timestamp
   SID
   IPv6
+  // Invalid is a run of bytes that is not valid UTF-8, one token per run.
+  // Not a UAX#29 class: the standard is defined on code points, and invalid
+  // input has none. Each run is still emitted, so no input is lost.
+  Invalid
 )
 
 
-//line segment_words.go:53
+//line segment_words.go:57
 var _s_cond_offsets []byte = []byte{
 	0, 0, 0, 0, 0, 0, 0, 0, 
 	0, 0, 0, 0, 0, 0, 0, 0, 
@@ -4127,7 +4131,7 @@ var _s_trans_keys []int16 = []int16{
 	162, 133, 143, 144, 150, 151, 255, 160, 
 	128, 129, 132, 135, 133, 134, 129, 160, 
 	255, 192, 255, 176, 255, 170, 173, 181, 
-	183, 186, 0, 127, 181, 190, 176, 183, 
+	183, 186, 128, 255, 181, 190, 176, 183, 
 	184, 185, 186, 191, 192, 255, 130, 131, 
 	137, 190, 136, 144, 145, 191, 192, 255, 
 	135, 179, 180, 129, 130, 132, 133, 144, 
@@ -4288,7 +4292,7 @@ var _s_trans_keys []int16 = []int16{
 	163, 184, 185, 186, 161, 162, 133, 143, 
 	144, 150, 151, 255, 160, 128, 129, 132, 
 	135, 133, 134, 129, 160, 255, 192, 255, 
-	176, 255, 170, 173, 181, 186, 0, 127, 
+	176, 255, 170, 173, 181, 186, 128, 255, 
 	181, 190, 176, 183, 184, 185, 186, 191, 
 	192, 255, 130, 131, 137, 190, 136, 144, 
 	145, 191, 192, 255, 135, 179, 129, 130, 
@@ -4450,8 +4454,8 @@ var _s_trans_keys []int16 = []int16{
 	159, 161, 175, 160, 163, 184, 185, 186, 
 	161, 162, 133, 143, 144, 150, 151, 255, 
 	160, 128, 129, 132, 135, 133, 134, 129, 
-	160, 255, 192, 255, 176, 255, 173, 0, 
-	127, 176, 255, 131, 137, 191, 145, 189, 
+	160, 255, 192, 255, 176, 255, 173, 128, 
+	255, 176, 255, 131, 137, 191, 145, 189, 
 	135, 129, 130, 132, 133, 156, 128, 133, 
 	144, 154, 176, 139, 159, 150, 157, 159, 
 	164, 167, 168, 170, 173, 143, 145, 176, 
@@ -4469,7 +4473,7 @@ var _s_trans_keys []int16 = []int16{
 	150, 155, 157, 158, 160, 194, 204, 205, 
 	210, 214, 215, 216, 217, 219, 220, 221, 
 	222, 223, 224, 225, 226, 227, 234, 239, 
-	240, 243, 48, 57, 173, 0, 127, 176, 
+	240, 243, 48, 57, 173, 128, 255, 176, 
 	255, 131, 137, 191, 145, 189, 135, 129, 
 	130, 132, 133, 156, 128, 133, 144, 154, 
 	171, 176, 139, 159, 160, 169, 150, 157, 
@@ -4731,7 +4735,7 @@ var _s_trans_keys []int16 = []int16{
 	186, 161, 162, 133, 143, 144, 150, 151, 
 	255, 160, 128, 129, 132, 135, 133, 134, 
 	129, 160, 255, 192, 255, 176, 255, 170, 
-	173, 181, 186, 0, 127, 181, 190, 176, 
+	173, 181, 186, 128, 255, 181, 190, 176, 
 	183, 184, 185, 186, 191, 192, 255, 130, 
 	131, 137, 137, 190, 136, 144, 145, 191, 
 	192, 255, 135, 179, 129, 130, 132, 133, 
@@ -5840,7 +5844,7 @@ var _s_trans_keys []int16 = []int16{
 	155, 159, 161, 175, 163, 144, 150, 160, 
 	128, 129, 132, 135, 133, 134, 129, 160, 
 	255, 192, 255, 151, 152, 153, 154, 155, 
-	156, 160, 255, 173, 173, 128, 255, 176, 
+	156, 160, 255, 173, 173, 0, 127, 176, 
 	255, 131, 137, 191, 145, 189, 135, 129, 
 	130, 132, 133, 156, 128, 133, 144, 154, 
 	176, 139, 159, 150, 157, 159, 164, 167, 
@@ -5916,7 +5920,7 @@ var _s_trans_keys []int16 = []int16{
 	255, 173, 180, 182, 255, 132, 155, 159, 
 	161, 175, 163, 144, 150, 160, 128, 129, 
 	132, 135, 133, 134, 129, 160, 255, 192, 
-	255, 128, 255, 176, 255, 131, 137, 191, 
+	255, 0, 127, 176, 255, 131, 137, 191, 
 	145, 189, 135, 129, 130, 132, 133, 156, 
 	128, 133, 144, 154, 176, 139, 159, 150, 
 	157, 159, 164, 167, 168, 170, 173, 143, 
@@ -5946,7 +5950,7 @@ var _s_trans_keys []int16 = []int16{
 	153, 187, 189, 129, 160, 170, 171, 175, 
 	178, 180, 181, 182, 128, 162, 163, 170, 
 	172, 173, 176, 185, 173, 170, 173, 181, 
-	183, 186, 128, 255, 181, 190, 176, 183, 
+	183, 186, 0, 127, 181, 190, 176, 183, 
 	184, 185, 186, 191, 192, 255, 130, 131, 
 	137, 190, 136, 144, 145, 191, 192, 255, 
 	135, 179, 180, 129, 130, 132, 133, 144, 
@@ -6108,7 +6112,7 @@ var _s_trans_keys []int16 = []int16{
 	175, 160, 163, 184, 185, 186, 161, 162, 
 	133, 143, 144, 150, 151, 255, 160, 128, 
 	129, 132, 135, 133, 134, 129, 160, 255, 
-	192, 255, 176, 255, 128, 255, 176, 255, 
+	192, 255, 176, 255, 0, 127, 176, 255, 
 	131, 137, 191, 145, 189, 135, 129, 130, 
 	132, 133, 156, 128, 133, 144, 154, 176, 
 	139, 159, 150, 157, 159, 164, 167, 168, 
@@ -6674,7 +6678,7 @@ var _s_trans_keys []int16 = []int16{
 	221, 222, 223, 224, 225, 226, 227, 234, 
 	237, 239, 240, 243, 48, 57, 65, 70, 
 	71, 90, 97, 102, 103, 122, 196, 218, 
-	235, 236, 170, 173, 181, 186, 128, 255, 
+	235, 236, 170, 173, 181, 186, 0, 127, 
 	181, 190, 176, 183, 184, 185, 186, 191, 
 	192, 255, 130, 131, 137, 137, 190, 136, 
 	144, 145, 191, 192, 255, 135, 179, 129, 
@@ -15049,7 +15053,7 @@ var _s_indicies []int16 = []int16{
 	1714, 547, 125, 1836, 547, 1837, 1838, 1839, 
 	1841, 1840, 547, 1714, 1714, 547, 547, 1714, 
 	1714, 547, 1714, 125, 1842, 125, 158, 125, 
-	547, 547, 1842, 547, 547, 125, 547, 125, 
+	547, 1842, 547, 547, 547, 125, 547, 125, 
 	547, 1842, 547, 1842, 125, 547, 547, 1842, 
 	547, 125, 1842, 125, 158, 1842, 1842, 549, 
 	549, 547, 1842, 1842, 1842, 125, 547, 397, 
@@ -15170,7 +15174,7 @@ var _s_indicies []int16 = []int16{
 	388, 128, 547, 547, 1842, 547, 125, 1964, 
 	547, 1965, 1966, 1967, 1969, 1968, 547, 1842, 
 	1842, 547, 547, 1842, 1842, 547, 1842, 125, 
-	1970, 125, 125, 547, 547, 1970, 547, 547, 
+	1970, 125, 125, 547, 1970, 547, 547, 547, 
 	125, 547, 125, 547, 1970, 547, 1970, 125, 
 	547, 547, 1970, 547, 125, 1970, 125, 1970, 
 	1970, 549, 549, 547, 1970, 1970, 1970, 125, 
@@ -15292,7 +15296,7 @@ var _s_indicies []int16 = []int16{
 	388, 128, 547, 547, 1970, 547, 125, 2092, 
 	547, 2093, 2094, 2095, 2097, 2096, 547, 1970, 
 	1970, 547, 547, 1970, 1970, 547, 1970, 1842, 
-	125, 125, 1842, 125, 1842, 1842, 125, 1842, 
+	125, 1842, 125, 125, 1842, 1842, 125, 1842, 
 	1842, 125, 1842, 1842, 1842, 125, 1842, 1842, 
 	1842, 125, 1842, 1842, 125, 1842, 1842, 1842, 
 	1842, 125, 1842, 1842, 1842, 125, 125, 1842, 
@@ -15311,7 +15315,7 @@ var _s_indicies []int16 = []int16{
 	2181, 2182, 2183, 2184, 2185, 2186, 2187, 2188, 
 	2189, 2190, 2191, 2192, 2193, 2194, 2195, 2196, 
 	2197, 2198, 2199, 2200, 2201, 2180, 2, 2202, 
-	2, 2, 2202, 2, 2202, 2202, 2, 2202, 
+	2, 2202, 2, 2, 2202, 2202, 2, 2202, 
 	2202, 2, 2202, 2202, 2202, 2, 2202, 2202, 
 	2202, 2, 2180, 2202, 2202, 2180, 2, 2202, 
 	2202, 2202, 2202, 2180, 2, 2202, 2202, 2202, 
@@ -15514,7 +15518,7 @@ var _s_indicies []int16 = []int16{
 	2330, 2331, 2330, 125, 2463, 2330, 2464, 2465, 
 	2466, 2468, 2467, 2330, 2331, 2331, 2330, 2330, 
 	2331, 2331, 2330, 2331, 125, 2180, 125, 125, 
-	2, 2, 2180, 2, 2202, 125, 2, 125, 
+	2, 2180, 2, 2, 2202, 125, 2, 125, 
 	2, 2180, 2, 2180, 125, 2202, 2, 2, 
 	2180, 2, 125, 2180, 125, 2180, 2180, 549, 
 	549, 2, 2180, 2180, 2202, 2180, 125, 2, 
@@ -16389,7 +16393,7 @@ var _s_indicies []int16 = []int16{
 	3502, 3501, 3502, 3619, 3502, 3620, 3621, 3622, 
 	3624, 3623, 3502, 3501, 3501, 3502, 3502, 3501, 
 	3501, 0, 1463, 3120, 3120, 3501, 3625, 2994, 
-	3625, 2995, 3625, 2995, 2995, 3625, 3625, 2995, 
+	3625, 2995, 2995, 3625, 2995, 3625, 3625, 2995, 
 	3625, 3625, 2995, 3625, 3625, 3625, 2995, 3625, 
 	3625, 3625, 2995, 3625, 3625, 2995, 3625, 3625, 
 	3625, 3625, 2995, 3625, 3625, 3625, 2995, 2995, 
@@ -16455,7 +16459,7 @@ var _s_indicies []int16 = []int16{
 	2995, 3625, 3625, 3625, 3625, 2995, 3741, 2995, 
 	3625, 2995, 3742, 2995, 3743, 3744, 3745, 3747, 
 	3746, 2995, 3625, 3625, 2995, 2995, 3625, 3625, 
-	3625, 2994, 2994, 3625, 3625, 2994, 3625, 3625, 
+	2994, 3625, 2994, 3625, 3625, 2994, 3625, 3625, 
 	2994, 3625, 3625, 3625, 2994, 3625, 3625, 3625, 
 	2994, 3625, 3625, 2994, 3625, 3625, 3625, 3625, 
 	2994, 3625, 3625, 3625, 2994, 2994, 3625, 3625, 
@@ -16481,7 +16485,7 @@ var _s_indicies []int16 = []int16{
 	1463, 125, 1463, 2180, 1463, 0, 1463, 125, 
 	1463, 125, 1463, 0, 125, 1463, 1463, 2180, 
 	0, 3830, 2598, 125, 3830, 125, 158, 125, 
-	2599, 3830, 2599, 2599, 2599, 125, 2599, 125, 
+	2599, 2599, 3830, 2599, 2599, 125, 2599, 125, 
 	2599, 3830, 2599, 3830, 125, 2599, 2599, 3830, 
 	2599, 125, 3830, 125, 158, 3830, 3830, 549, 
 	549, 2599, 3830, 3830, 3830, 125, 2599, 397, 
@@ -16602,7 +16606,7 @@ var _s_indicies []int16 = []int16{
 	3830, 3830, 2599, 130, 3951, 386, 387, 388, 
 	128, 2599, 2599, 3830, 2599, 125, 3952, 2599, 
 	3953, 3954, 3955, 3957, 3956, 2599, 3830, 3830, 
-	2599, 2599, 3830, 3830, 2599, 3830, 3830, 2598, 
+	2599, 2599, 3830, 3830, 2599, 3830, 2598, 3830, 
 	2598, 3830, 3830, 2598, 3830, 3830, 2598, 3830, 
 	3830, 3830, 2598, 3830, 3830, 3830, 2598, 3830, 
 	3830, 2598, 3830, 3830, 3830, 3830, 2598, 3830, 
@@ -17068,7 +17072,7 @@ var _s_indicies []int16 = []int16{
 	145, 146, 147, 148, 149, 150, 151, 152, 
 	154, 155, 156, 157, 4601, 4656, 125, 4656, 
 	125, 128, 153, 547, 125, 4657, 125, 125, 
-	2330, 4657, 2330, 2330, 2202, 125, 2330, 125, 
+	2330, 2330, 4657, 2330, 2202, 125, 2330, 125, 
 	2330, 4657, 2330, 4657, 125, 2202, 2330, 2330, 
 	4657, 2330, 125, 4657, 125, 4657, 4657, 549, 
 	549, 2330, 4657, 4657, 2202, 4657, 125, 2330, 
@@ -25939,7 +25943,7 @@ const s_error int = 0
 const s_en_main int = 5346
 
 
-//line segment_words.rl:52
+//line segment_words.rl:56
 
 
 func segmentWords(data []byte, maxTokens int, atEOF bool, val [][]byte, types []int) ([][]byte, []int, int, error) {
@@ -25974,7 +25978,7 @@ func segmentWords(data []byte, maxTokens int, atEOF bool, val [][]byte, types []
   endPos := 0
   totalConsumed := 0
   
-//line segment_words.go:25978
+//line segment_words.go:25982
 	{
 	cs = s_start
 	ts = 0
@@ -25982,7 +25986,7 @@ func segmentWords(data []byte, maxTokens int, atEOF bool, val [][]byte, types []
 	act = 0
 	}
 
-//line segment_words.go:25986
+//line segment_words.go:25990
 	{
 	var _klen int
 	var _keys int
@@ -26002,7 +26006,7 @@ _resume:
 ts = p
 
 
-//line segment_words.go:26006
+//line segment_words.go:26010
 	}
 
 	_widec = int16(data[p])
@@ -26113,13 +26117,13 @@ _eof_trans:
 
 	switch _s_trans_actions[_trans] {
 	case 8:
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
 
 	case 63:
-//line segment_words.rl:191
+//line segment_words.rl:195
 te = p
 p--
 {
@@ -26135,7 +26139,7 @@ p--
   }
 
 	case 65:
-//line segment_words.rl:191
+//line segment_words.rl:195
 te = p
 p--
 {
@@ -26151,7 +26155,7 @@ p--
   }
 
 	case 62:
-//line segment_words.rl:98
+//line segment_words.rl:102
 te = p
 p--
 {
@@ -26167,7 +26171,7 @@ p--
   }
 
 	case 59:
-//line segment_words.rl:168
+//line segment_words.rl:172
 te = p
 p--
 {
@@ -26196,7 +26200,7 @@ p--
   }
 
 	case 68:
-//line segment_words.rl:142
+//line segment_words.rl:146
 te = p
 p--
 {
@@ -26212,7 +26216,7 @@ p--
   }
 
 	case 60:
-//line segment_words.rl:154
+//line segment_words.rl:158
 te = p
 p--
 {
@@ -26228,7 +26232,7 @@ p--
   }
 
 	case 61:
-//line segment_words.rl:124
+//line segment_words.rl:128
 te = p
 p--
 {
@@ -26251,7 +26255,7 @@ p--
   }
 
 	case 66:
-//line segment_words.rl:191
+//line segment_words.rl:195
 te = p
 p--
 {
@@ -26267,7 +26271,7 @@ p--
   }
 
 	case 53:
-//line segment_words.rl:203
+//line segment_words.rl:207
 te = p
 p--
 {
@@ -26298,13 +26302,13 @@ p--
   }
 
 	case 54:
-//line segment_words.rl:229
+//line segment_words.rl:233
 te = p
 p--
 {
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
 
@@ -26317,13 +26321,13 @@ p--
   }
 
 	case 56:
-//line segment_words.rl:244
+//line segment_words.rl:248
 te = p
 p--
 {
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
 
@@ -26336,7 +26340,7 @@ p--
   }
 
 	case 51:
-//line segment_words.rl:259
+//line segment_words.rl:263
 te = p
 p--
 {
@@ -26352,13 +26356,13 @@ p--
   }
 
 	case 55:
-//line segment_words.rl:271
+//line segment_words.rl:275
 te = p
 p--
 {
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
 
@@ -26371,13 +26375,13 @@ p--
   }
 
 	case 57:
-//line segment_words.rl:286
+//line segment_words.rl:290
 te = p
 p--
 {
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
 
@@ -26390,26 +26394,39 @@ p--
   }
 
 	case 58:
-//line segment_words.rl:301
+//line segment_words.rl:305
 te = p
 p--
 {
+    // A rune cut off at the end of the data so far: wait for the rest.
+    if !atEOF && !utf8.FullRune(data[startPos:]) {
+      return val, types, totalConsumed, nil
+    }
+    noneType := None
     lastPos := startPos
-    for lastPos <= endPos {
-      _, size := utf8.DecodeRune(data[lastPos:])
-      lastPos += size
+    if invalidByteAt(data, startPos, atEOF) {
+      // Take the whole run of invalid bytes as one Invalid token.
+      noneType = Invalid
+      for lastPos < pe && invalidByteAt(data, lastPos, atEOF) {
+        lastPos++
+      }
+    } else {
+      for lastPos <= endPos {
+        _, size := utf8.DecodeRune(data[lastPos:])
+        lastPos += size
+      }
     }
     endPos = lastPos -1
     p = endPos
 
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
     // otherwise, consume this as well
     val = append(val, data[startPos:endPos+1])
-    types = append(types, None)
+    types = append(types, noneType)
     totalConsumed = endPos+1
     if maxTokens > 0 && len(val) >= maxTokens {
       return val, types, totalConsumed, nil
@@ -26417,26 +26434,39 @@ p--
   }
 
 	case 49:
-//line segment_words.rl:301
+//line segment_words.rl:305
 te = p
 p--
 {
+    // A rune cut off at the end of the data so far: wait for the rest.
+    if !atEOF && !utf8.FullRune(data[startPos:]) {
+      return val, types, totalConsumed, nil
+    }
+    noneType := None
     lastPos := startPos
-    for lastPos <= endPos {
-      _, size := utf8.DecodeRune(data[lastPos:])
-      lastPos += size
+    if invalidByteAt(data, startPos, atEOF) {
+      // Take the whole run of invalid bytes as one Invalid token.
+      noneType = Invalid
+      for lastPos < pe && invalidByteAt(data, lastPos, atEOF) {
+        lastPos++
+      }
+    } else {
+      for lastPos <= endPos {
+        _, size := utf8.DecodeRune(data[lastPos:])
+        lastPos += size
+      }
     }
     endPos = lastPos -1
     p = endPos
 
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
     // otherwise, consume this as well
     val = append(val, data[startPos:endPos+1])
-    types = append(types, None)
+    types = append(types, noneType)
     totalConsumed = endPos+1
     if maxTokens > 0 && len(val) >= maxTokens {
       return val, types, totalConsumed, nil
@@ -26444,26 +26474,39 @@ p--
   }
 
 	case 52:
-//line segment_words.rl:301
+//line segment_words.rl:305
 te = p
 p--
 {
+    // A rune cut off at the end of the data so far: wait for the rest.
+    if !atEOF && !utf8.FullRune(data[startPos:]) {
+      return val, types, totalConsumed, nil
+    }
+    noneType := None
     lastPos := startPos
-    for lastPos <= endPos {
-      _, size := utf8.DecodeRune(data[lastPos:])
-      lastPos += size
+    if invalidByteAt(data, startPos, atEOF) {
+      // Take the whole run of invalid bytes as one Invalid token.
+      noneType = Invalid
+      for lastPos < pe && invalidByteAt(data, lastPos, atEOF) {
+        lastPos++
+      }
+    } else {
+      for lastPos <= endPos {
+        _, size := utf8.DecodeRune(data[lastPos:])
+        lastPos += size
+      }
     }
     endPos = lastPos -1
     p = endPos
 
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
     // otherwise, consume this as well
     val = append(val, data[startPos:endPos+1])
-    types = append(types, None)
+    types = append(types, noneType)
     totalConsumed = endPos+1
     if maxTokens > 0 && len(val) >= maxTokens {
       return val, types, totalConsumed, nil
@@ -26471,26 +26514,39 @@ p--
   }
 
 	case 48:
-//line segment_words.rl:301
+//line segment_words.rl:305
 te = p
 p--
 {
+    // A rune cut off at the end of the data so far: wait for the rest.
+    if !atEOF && !utf8.FullRune(data[startPos:]) {
+      return val, types, totalConsumed, nil
+    }
+    noneType := None
     lastPos := startPos
-    for lastPos <= endPos {
-      _, size := utf8.DecodeRune(data[lastPos:])
-      lastPos += size
+    if invalidByteAt(data, startPos, atEOF) {
+      // Take the whole run of invalid bytes as one Invalid token.
+      noneType = Invalid
+      for lastPos < pe && invalidByteAt(data, lastPos, atEOF) {
+        lastPos++
+      }
+    } else {
+      for lastPos <= endPos {
+        _, size := utf8.DecodeRune(data[lastPos:])
+        lastPos += size
+      }
     }
     endPos = lastPos -1
     p = endPos
 
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
     // otherwise, consume this as well
     val = append(val, data[startPos:endPos+1])
-    types = append(types, None)
+    types = append(types, noneType)
     totalConsumed = endPos+1
     if maxTokens > 0 && len(val) >= maxTokens {
       return val, types, totalConsumed, nil
@@ -26498,7 +26554,7 @@ p--
   }
 
 	case 29:
-//line segment_words.rl:191
+//line segment_words.rl:195
 p = (te) - 1
 {
     if !atEOF {
@@ -26513,7 +26569,7 @@ p = (te) - 1
   }
 
 	case 31:
-//line segment_words.rl:191
+//line segment_words.rl:195
 p = (te) - 1
 {
     if !atEOF {
@@ -26528,7 +26584,7 @@ p = (te) - 1
   }
 
 	case 23:
-//line segment_words.rl:168
+//line segment_words.rl:172
 p = (te) - 1
 {
     if !atEOF {
@@ -26556,7 +26612,7 @@ p = (te) - 1
   }
 
 	case 38:
-//line segment_words.rl:142
+//line segment_words.rl:146
 p = (te) - 1
 {
     if !atEOF {
@@ -26571,7 +26627,7 @@ p = (te) - 1
   }
 
 	case 34:
-//line segment_words.rl:191
+//line segment_words.rl:195
 p = (te) - 1
 {
     if !atEOF {
@@ -26586,7 +26642,7 @@ p = (te) - 1
   }
 
 	case 10:
-//line segment_words.rl:203
+//line segment_words.rl:207
 p = (te) - 1
 {
     if !atEOF {
@@ -26616,12 +26672,12 @@ p = (te) - 1
   }
 
 	case 12:
-//line segment_words.rl:229
+//line segment_words.rl:233
 p = (te) - 1
 {
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
 
@@ -26634,12 +26690,12 @@ p = (te) - 1
   }
 
 	case 17:
-//line segment_words.rl:244
+//line segment_words.rl:248
 p = (te) - 1
 {
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
 
@@ -26652,7 +26708,7 @@ p = (te) - 1
   }
 
 	case 5:
-//line segment_words.rl:259
+//line segment_words.rl:263
 p = (te) - 1
 {
     if !atEOF {
@@ -26667,12 +26723,12 @@ p = (te) - 1
   }
 
 	case 15:
-//line segment_words.rl:271
+//line segment_words.rl:275
 p = (te) - 1
 {
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
 
@@ -26685,12 +26741,12 @@ p = (te) - 1
   }
 
 	case 19:
-//line segment_words.rl:286
+//line segment_words.rl:290
 p = (te) - 1
 {
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
 
@@ -26703,25 +26759,38 @@ p = (te) - 1
   }
 
 	case 21:
-//line segment_words.rl:301
+//line segment_words.rl:305
 p = (te) - 1
 {
+    // A rune cut off at the end of the data so far: wait for the rest.
+    if !atEOF && !utf8.FullRune(data[startPos:]) {
+      return val, types, totalConsumed, nil
+    }
+    noneType := None
     lastPos := startPos
-    for lastPos <= endPos {
-      _, size := utf8.DecodeRune(data[lastPos:])
-      lastPos += size
+    if invalidByteAt(data, startPos, atEOF) {
+      // Take the whole run of invalid bytes as one Invalid token.
+      noneType = Invalid
+      for lastPos < pe && invalidByteAt(data, lastPos, atEOF) {
+        lastPos++
+      }
+    } else {
+      for lastPos <= endPos {
+        _, size := utf8.DecodeRune(data[lastPos:])
+        lastPos += size
+      }
     }
     endPos = lastPos -1
     p = endPos
 
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
     // otherwise, consume this as well
     val = append(val, data[startPos:endPos+1])
-    types = append(types, None)
+    types = append(types, noneType)
     totalConsumed = endPos+1
     if maxTokens > 0 && len(val) >= maxTokens {
       return val, types, totalConsumed, nil
@@ -26729,25 +26798,38 @@ p = (te) - 1
   }
 
 	case 6:
-//line segment_words.rl:301
+//line segment_words.rl:305
 p = (te) - 1
 {
+    // A rune cut off at the end of the data so far: wait for the rest.
+    if !atEOF && !utf8.FullRune(data[startPos:]) {
+      return val, types, totalConsumed, nil
+    }
+    noneType := None
     lastPos := startPos
-    for lastPos <= endPos {
-      _, size := utf8.DecodeRune(data[lastPos:])
-      lastPos += size
+    if invalidByteAt(data, startPos, atEOF) {
+      // Take the whole run of invalid bytes as one Invalid token.
+      noneType = Invalid
+      for lastPos < pe && invalidByteAt(data, lastPos, atEOF) {
+        lastPos++
+      }
+    } else {
+      for lastPos <= endPos {
+        _, size := utf8.DecodeRune(data[lastPos:])
+        lastPos += size
+      }
     }
     endPos = lastPos -1
     p = endPos
 
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
     // otherwise, consume this as well
     val = append(val, data[startPos:endPos+1])
-    types = append(types, None)
+    types = append(types, noneType)
     totalConsumed = endPos+1
     if maxTokens > 0 && len(val) >= maxTokens {
       return val, types, totalConsumed, nil
@@ -26755,25 +26837,38 @@ p = (te) - 1
   }
 
 	case 1:
-//line segment_words.rl:301
+//line segment_words.rl:305
 p = (te) - 1
 {
+    // A rune cut off at the end of the data so far: wait for the rest.
+    if !atEOF && !utf8.FullRune(data[startPos:]) {
+      return val, types, totalConsumed, nil
+    }
+    noneType := None
     lastPos := startPos
-    for lastPos <= endPos {
-      _, size := utf8.DecodeRune(data[lastPos:])
-      lastPos += size
+    if invalidByteAt(data, startPos, atEOF) {
+      // Take the whole run of invalid bytes as one Invalid token.
+      noneType = Invalid
+      for lastPos < pe && invalidByteAt(data, lastPos, atEOF) {
+        lastPos++
+      }
+    } else {
+      for lastPos <= endPos {
+        _, size := utf8.DecodeRune(data[lastPos:])
+        lastPos += size
+      }
     }
     endPos = lastPos -1
     p = endPos
 
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
     // otherwise, consume this as well
     val = append(val, data[startPos:endPos+1])
-    types = append(types, None)
+    types = append(types, noneType)
     totalConsumed = endPos+1
     if maxTokens > 0 && len(val) >= maxTokens {
       return val, types, totalConsumed, nil
@@ -26940,7 +27035,7 @@ p = (te) - 1
 
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
 
@@ -26956,7 +27051,7 @@ p = (te) - 1
 
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
 
@@ -26985,7 +27080,7 @@ p = (te) - 1
 
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
 
@@ -26999,22 +27094,35 @@ p = (te) - 1
 	case 16:
 	{p = (te) - 1
 
+    // A rune cut off at the end of the data so far: wait for the rest.
+    if !atEOF && !utf8.FullRune(data[startPos:]) {
+      return val, types, totalConsumed, nil
+    }
+    noneType := None
     lastPos := startPos
-    for lastPos <= endPos {
-      _, size := utf8.DecodeRune(data[lastPos:])
-      lastPos += size
+    if invalidByteAt(data, startPos, atEOF) {
+      // Take the whole run of invalid bytes as one Invalid token.
+      noneType = Invalid
+      for lastPos < pe && invalidByteAt(data, lastPos, atEOF) {
+        lastPos++
+      }
+    } else {
+      for lastPos <= endPos {
+        _, size := utf8.DecodeRune(data[lastPos:])
+        lastPos += size
+      }
     }
     endPos = lastPos -1
     p = endPos
 
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
     // otherwise, consume this as well
     val = append(val, data[startPos:endPos+1])
-    types = append(types, None)
+    types = append(types, noneType)
     totalConsumed = endPos+1
     if maxTokens > 0 && len(val) >= maxTokens {
       return val, types, totalConsumed, nil
@@ -27023,22 +27131,35 @@ p = (te) - 1
 	case 21:
 	{p = (te) - 1
 
+    // A rune cut off at the end of the data so far: wait for the rest.
+    if !atEOF && !utf8.FullRune(data[startPos:]) {
+      return val, types, totalConsumed, nil
+    }
+    noneType := None
     lastPos := startPos
-    for lastPos <= endPos {
-      _, size := utf8.DecodeRune(data[lastPos:])
-      lastPos += size
+    if invalidByteAt(data, startPos, atEOF) {
+      // Take the whole run of invalid bytes as one Invalid token.
+      noneType = Invalid
+      for lastPos < pe && invalidByteAt(data, lastPos, atEOF) {
+        lastPos++
+      }
+    } else {
+      for lastPos <= endPos {
+        _, size := utf8.DecodeRune(data[lastPos:])
+        lastPos += size
+      }
     }
     endPos = lastPos -1
     p = endPos
 
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
     // otherwise, consume this as well
     val = append(val, data[startPos:endPos+1])
-    types = append(types, None)
+    types = append(types, noneType)
     totalConsumed = endPos+1
     if maxTokens > 0 && len(val) >= maxTokens {
       return val, types, totalConsumed, nil
@@ -27047,22 +27168,35 @@ p = (te) - 1
 	case 22:
 	{p = (te) - 1
 
+    // A rune cut off at the end of the data so far: wait for the rest.
+    if !atEOF && !utf8.FullRune(data[startPos:]) {
+      return val, types, totalConsumed, nil
+    }
+    noneType := None
     lastPos := startPos
-    for lastPos <= endPos {
-      _, size := utf8.DecodeRune(data[lastPos:])
-      lastPos += size
+    if invalidByteAt(data, startPos, atEOF) {
+      // Take the whole run of invalid bytes as one Invalid token.
+      noneType = Invalid
+      for lastPos < pe && invalidByteAt(data, lastPos, atEOF) {
+        lastPos++
+      }
+    } else {
+      for lastPos <= endPos {
+        _, size := utf8.DecodeRune(data[lastPos:])
+        lastPos += size
+      }
     }
     endPos = lastPos -1
     p = endPos
 
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
     // otherwise, consume this as well
     val = append(val, data[startPos:endPos+1])
-    types = append(types, None)
+    types = append(types, noneType)
     totalConsumed = endPos+1
     if maxTokens > 0 && len(val) >= maxTokens {
       return val, types, totalConsumed, nil
@@ -27072,21 +27206,21 @@ p = (te) - 1
 	
 
 	case 45:
-//line segment_words.rl:90
+//line segment_words.rl:94
 
     startPos = p
   
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
 
 	case 64:
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:191
+//line segment_words.rl:195
 te = p+1
 {
     if !atEOF {
@@ -27101,11 +27235,11 @@ te = p+1
   }
 
 	case 32:
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:191
+//line segment_words.rl:195
 te = p+1
 {
     if !atEOF {
@@ -27120,11 +27254,11 @@ te = p+1
   }
 
 	case 24:
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:168
+//line segment_words.rl:172
 te = p+1
 {
     if !atEOF {
@@ -27152,11 +27286,11 @@ te = p+1
   }
 
 	case 26:
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:110
+//line segment_words.rl:114
 te = p+1
 {
     if !atEOF {
@@ -27171,11 +27305,11 @@ te = p+1
   }
 
 	case 30:
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:142
+//line segment_words.rl:146
 te = p+1
 {
     if !atEOF {
@@ -27190,11 +27324,11 @@ te = p+1
   }
 
 	case 67:
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:191
+//line segment_words.rl:195
 te = p+1
 {
     if !atEOF {
@@ -27209,29 +27343,42 @@ te = p+1
   }
 
 	case 50:
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:301
+//line segment_words.rl:305
 te = p+1
 {
+    // A rune cut off at the end of the data so far: wait for the rest.
+    if !atEOF && !utf8.FullRune(data[startPos:]) {
+      return val, types, totalConsumed, nil
+    }
+    noneType := None
     lastPos := startPos
-    for lastPos <= endPos {
-      _, size := utf8.DecodeRune(data[lastPos:])
-      lastPos += size
+    if invalidByteAt(data, startPos, atEOF) {
+      // Take the whole run of invalid bytes as one Invalid token.
+      noneType = Invalid
+      for lastPos < pe && invalidByteAt(data, lastPos, atEOF) {
+        lastPos++
+      }
+    } else {
+      for lastPos <= endPos {
+        _, size := utf8.DecodeRune(data[lastPos:])
+        lastPos += size
+      }
     }
     endPos = lastPos -1
     p = endPos
 
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
     // otherwise, consume this as well
     val = append(val, data[startPos:endPos+1])
-    types = append(types, None)
+    types = append(types, noneType)
     totalConsumed = endPos+1
     if maxTokens > 0 && len(val) >= maxTokens {
       return val, types, totalConsumed, nil
@@ -27239,29 +27386,42 @@ te = p+1
   }
 
 	case 13:
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:301
+//line segment_words.rl:305
 te = p+1
 {
+    // A rune cut off at the end of the data so far: wait for the rest.
+    if !atEOF && !utf8.FullRune(data[startPos:]) {
+      return val, types, totalConsumed, nil
+    }
+    noneType := None
     lastPos := startPos
-    for lastPos <= endPos {
-      _, size := utf8.DecodeRune(data[lastPos:])
-      lastPos += size
+    if invalidByteAt(data, startPos, atEOF) {
+      // Take the whole run of invalid bytes as one Invalid token.
+      noneType = Invalid
+      for lastPos < pe && invalidByteAt(data, lastPos, atEOF) {
+        lastPos++
+      }
+    } else {
+      for lastPos <= endPos {
+        _, size := utf8.DecodeRune(data[lastPos:])
+        lastPos += size
+      }
     }
     endPos = lastPos -1
     p = endPos
 
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
     // otherwise, consume this as well
     val = append(val, data[startPos:endPos+1])
-    types = append(types, None)
+    types = append(types, noneType)
     totalConsumed = endPos+1
     if maxTokens > 0 && len(val) >= maxTokens {
       return val, types, totalConsumed, nil
@@ -27272,39 +27432,52 @@ te = p+1
 //line NONE:1
 te = p+1
 
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
 
 	case 43:
-//line segment_words.rl:90
+//line segment_words.rl:94
 
     startPos = p
   
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:301
+//line segment_words.rl:305
 te = p+1
 {
+    // A rune cut off at the end of the data so far: wait for the rest.
+    if !atEOF && !utf8.FullRune(data[startPos:]) {
+      return val, types, totalConsumed, nil
+    }
+    noneType := None
     lastPos := startPos
-    for lastPos <= endPos {
-      _, size := utf8.DecodeRune(data[lastPos:])
-      lastPos += size
+    if invalidByteAt(data, startPos, atEOF) {
+      // Take the whole run of invalid bytes as one Invalid token.
+      noneType = Invalid
+      for lastPos < pe && invalidByteAt(data, lastPos, atEOF) {
+        lastPos++
+      }
+    } else {
+      for lastPos <= endPos {
+        _, size := utf8.DecodeRune(data[lastPos:])
+        lastPos += size
+      }
     }
     endPos = lastPos -1
     p = endPos
 
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
     // otherwise, consume this as well
     val = append(val, data[startPos:endPos+1])
-    types = append(types, None)
+    types = append(types, noneType)
     totalConsumed = endPos+1
     if maxTokens > 0 && len(val) >= maxTokens {
       return val, types, totalConsumed, nil
@@ -27312,33 +27485,46 @@ te = p+1
   }
 
 	case 44:
-//line segment_words.rl:90
+//line segment_words.rl:94
 
     startPos = p
   
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:301
+//line segment_words.rl:305
 te = p+1
 {
+    // A rune cut off at the end of the data so far: wait for the rest.
+    if !atEOF && !utf8.FullRune(data[startPos:]) {
+      return val, types, totalConsumed, nil
+    }
+    noneType := None
     lastPos := startPos
-    for lastPos <= endPos {
-      _, size := utf8.DecodeRune(data[lastPos:])
-      lastPos += size
+    if invalidByteAt(data, startPos, atEOF) {
+      // Take the whole run of invalid bytes as one Invalid token.
+      noneType = Invalid
+      for lastPos < pe && invalidByteAt(data, lastPos, atEOF) {
+        lastPos++
+      }
+    } else {
+      for lastPos <= endPos {
+        _, size := utf8.DecodeRune(data[lastPos:])
+        lastPos += size
+      }
     }
     endPos = lastPos -1
     p = endPos
 
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
     // otherwise, consume this as well
     val = append(val, data[startPos:endPos+1])
-    types = append(types, None)
+    types = append(types, noneType)
     totalConsumed = endPos+1
     if maxTokens > 0 && len(val) >= maxTokens {
       return val, types, totalConsumed, nil
@@ -27349,224 +27535,224 @@ te = p+1
 //line NONE:1
 te = p+1
 
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:191
+//line segment_words.rl:195
 act = 2;
 
 	case 28:
 //line NONE:1
 te = p+1
 
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:98
+//line segment_words.rl:102
 act = 3;
 
 	case 22:
 //line NONE:1
 te = p+1
 
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:168
+//line segment_words.rl:172
 act = 4;
 
 	case 37:
 //line NONE:1
 te = p+1
 
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:110
+//line segment_words.rl:114
 act = 5;
 
 	case 35:
 //line NONE:1
 te = p+1
 
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:142
+//line segment_words.rl:146
 act = 6;
 
 	case 25:
 //line NONE:1
 te = p+1
 
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:154
+//line segment_words.rl:158
 act = 7;
 
 	case 27:
 //line NONE:1
 te = p+1
 
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:124
+//line segment_words.rl:128
 act = 8;
 
 	case 33:
 //line NONE:1
 te = p+1
 
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:191
+//line segment_words.rl:195
 act = 9;
 
 	case 9:
 //line NONE:1
 te = p+1
 
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:203
+//line segment_words.rl:207
 act = 10;
 
 	case 11:
 //line NONE:1
 te = p+1
 
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:229
+//line segment_words.rl:233
 act = 11;
 
 	case 16:
 //line NONE:1
 te = p+1
 
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:244
+//line segment_words.rl:248
 act = 12;
 
 	case 4:
 //line NONE:1
 te = p+1
 
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:259
+//line segment_words.rl:263
 act = 13;
 
 	case 14:
 //line NONE:1
 te = p+1
 
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:271
+//line segment_words.rl:275
 act = 14;
 
 	case 20:
 //line NONE:1
 te = p+1
 
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:301
+//line segment_words.rl:305
 act = 16;
 
 	case 7:
 //line NONE:1
 te = p+1
 
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:301
+//line segment_words.rl:305
 act = 21;
 
 	case 2:
 //line NONE:1
 te = p+1
 
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:301
+//line segment_words.rl:305
 act = 22;
 
 	case 47:
 //line NONE:1
 te = p+1
 
-//line segment_words.rl:90
+//line segment_words.rl:94
 
     startPos = p
   
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:203
+//line segment_words.rl:207
 act = 10;
 
 	case 46:
 //line NONE:1
 te = p+1
 
-//line segment_words.rl:90
+//line segment_words.rl:94
 
     startPos = p
   
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:259
+//line segment_words.rl:263
 act = 13;
 
 	case 42:
 //line NONE:1
 te = p+1
 
-//line segment_words.rl:90
+//line segment_words.rl:94
 
     startPos = p
   
-//line segment_words.rl:94
+//line segment_words.rl:98
 
     endPos = p
   
-//line segment_words.rl:301
+//line segment_words.rl:305
 act = 22;
 
-//line segment_words.go:27570
+//line segment_words.go:27756
 	}
 
 _again:
@@ -27576,7 +27762,7 @@ _again:
 ts = 0
 
 
-//line segment_words.go:27580
+//line segment_words.go:27766
 	}
 
 	if cs == 0 {
@@ -27593,19 +27779,19 @@ ts = 0
 		}
 		switch _s_eof_actions[cs] {
 		case 41:
-//line segment_words.rl:90
+//line segment_words.rl:94
 
     startPos = p
   
 
-//line segment_words.go:27602
+//line segment_words.go:27788
 		}
 	}
 
 	_out: {}
 	}
 
-//line segment_words.rl:576
+//line segment_words.rl:593
 
 
   if cs < s_first_final {

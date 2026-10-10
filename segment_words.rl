@@ -44,6 +44,10 @@ const (
   Timestamp
   SID
   IPv6
+  // Invalid is a run of bytes that is not valid UTF-8, one token per run.
+  // Not a UAX#29 class: the standard is defined on code points, and invalid
+  // input has none. Each run is still emitted, so no input is lost.
+  Invalid
 )
 
 %%{
@@ -229,7 +233,7 @@ func segmentWords(data []byte, maxTokens int, atEOF bool, val [][]byte, types []
   action finishHangulToken {
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
 
@@ -244,7 +248,7 @@ func segmentWords(data []byte, maxTokens int, atEOF bool, val [][]byte, types []
   action finishKatakanaToken {
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
 
@@ -271,7 +275,7 @@ func segmentWords(data []byte, maxTokens int, atEOF bool, val [][]byte, types []
   action finishHanToken {
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
 
@@ -286,7 +290,7 @@ func segmentWords(data []byte, maxTokens int, atEOF bool, val [][]byte, types []
   action finishHiraganaToken {
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
 
@@ -299,22 +303,35 @@ func segmentWords(data []byte, maxTokens int, atEOF bool, val [][]byte, types []
   }
 
   action finishNoneToken {
+    // A rune cut off at the end of the data so far: wait for the rest.
+    if !atEOF && !utf8.FullRune(data[startPos:]) {
+      return val, types, totalConsumed, nil
+    }
+    noneType := None
     lastPos := startPos
-    for lastPos <= endPos {
-      _, size := utf8.DecodeRune(data[lastPos:])
-      lastPos += size
+    if invalidByteAt(data, startPos, atEOF) {
+      // Take the whole run of invalid bytes as one Invalid token.
+      noneType = Invalid
+      for lastPos < pe && invalidByteAt(data, lastPos, atEOF) {
+        lastPos++
+      }
+    } else {
+      for lastPos <= endPos {
+        _, size := utf8.DecodeRune(data[lastPos:])
+        lastPos += size
+      }
     }
     endPos = lastPos -1
     p = endPos
 
     if endPos+1 == pe && !atEOF {
       return val, types, totalConsumed, nil
-    } else if dr, size := utf8.DecodeRune(data[endPos+1:]); dr == utf8.RuneError && size == 1 {
+    } else if !atEOF && !utf8.FullRune(data[endPos+1:]) {
       return val, types, totalConsumed, nil
     }
     // otherwise, consume this as well
     val = append(val, data[startPos:endPos+1])
-    types = append(types, None)
+    types = append(types, noneType)
     totalConsumed = endPos+1
     if maxTokens > 0 && len(val) >= maxTokens {
       return val, types, totalConsumed, nil

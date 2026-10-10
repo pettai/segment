@@ -60,6 +60,18 @@ The added type constants are appended after the upstream `None`, `Number`,
 working. A consumer that does not know the new types sees them as unrecognized
 type values carrying correct token text.
 
+### Invalid UTF-8
+
+Input that is not valid UTF-8 is segmented without loss: each run of invalid
+bytes (a lone continuation byte, a byte that never occurs in UTF-8, a broken or
+cut-off sequence) is one token of type `Invalid`, and segmentation continues
+after it (`abc \xff\xfe def` gives `abc`, ` `, `\xff\xfe`, ` `, `def`). When
+reading from an `io.Reader`, a multi-byte character split across reads is
+waited for, not taken as invalid. Upstream stopped silently at an invalid byte
+that followed a token, with `Err()` returning nil, and the rest of the input
+was lost. If a segment function ever makes no progress on input left at EOF,
+`Segmenter.Err()` now returns `ErrNoProgress` instead of nil.
+
 ## License
 
 Apache License Version 2.0
